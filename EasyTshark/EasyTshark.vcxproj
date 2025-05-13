@@ -171,6 +171,7 @@
     <ClInclude Include="include\ip2region\xdb_bench.h" />
     <ClInclude Include="include\ip2region\xdb_search.h" />
     <ClInclude Include="include\loguru\loguru.hpp" />
+    <ClInclude Include="include\main.h" />
     <ClInclude Include="include\rapidjson\allocators.h" />
     <ClInclude Include="include\rapidjson\cursorstreamwrapper.h" />
     <ClInclude Include="include\rapidjson\document.h" />

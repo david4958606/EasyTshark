@@ -1,11 +1,11 @@
-﻿#include "Packet.h"
-import <sstream>;
+﻿import <sstream>;
 import <vector>;
 import <iostream>;
 import <fstream>;
 import <string>;
 import <format>;
 
+#include "Packet.h"
 #include "document.h"
 #include "writer.h"
 #include "stringbuffer.h"

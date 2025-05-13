@@ -2,6 +2,7 @@
 import <string>;
 import <vector>;
 
+
 struct Packet
 {
     // -e frame.number -e frame.time -e ip.src -e ipv6.src
@@ -20,6 +21,7 @@ struct Packet
     uint32_t    FileOffset;
 };
 
+
 // PCAP Global Header
 struct PcapHeader
 {
@@ -32,7 +34,8 @@ struct PcapHeader
     uint32_t Network;      // 4 bytes 41 02 00 00
 };
 
-// Packet Header
+
+// PCAP Packet Header
 struct PacketHeader
 {
     uint32_t TsSec;

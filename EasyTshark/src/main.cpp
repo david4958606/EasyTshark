@@ -1,12 +1,24 @@
 import <filesystem>;
 import <iostream>;
 import <format>;
+
+
 #include "Packet.h"
+#include "main.h"
+
 
 int main(int argc, char* argv[])
 {
+    const std::string filePath = "resource\\capture.pcap";
+    const std::string command  = GenerateCommand(filePath);
+    FormatPipeOutput(filePath, command);
+    return 0;
+}
+
+
+std::string GenerateCommand(const std::string& filePath)
+{
     const std::string tsharkPath = "\"C:\\Program Files\\Wireshark\\tshark.exe\"";
-    const std::string filePath   = "resource\\capture.pcap";
     const std::string argFile    = "-r " + filePath;
 
     const std::string argDisplay1 =
@@ -19,11 +31,17 @@ int main(int argc, char* argv[])
     const std::string argDisplay = argDisplay1 + argDisplay2 + argDisplay3;
     const std::string command    = "\"" + tsharkPath + " " + argFile + " " + argDisplay + "\"";
     std::cout << "Command: " << command << std::endl;
+    return command;
+}
+
+
+void FormatPipeOutput(const std::string& filePath, const std::string& command)
+{
     FILE* pipe = _popen(command.c_str(), "r");
     if (!pipe)
     {
         std::cerr << "Failed to open pipe." << std::endl;
-        return 1;
+        return;
     }
 
     std::vector<Packet> packets;
@@ -62,7 +80,5 @@ int main(int argc, char* argv[])
     if (_pclose(pipe) == -1)
     {
         std::cerr << "Failed to close pipe." << std::endl;
-        return 1;
     }
-    return 0;
 }
