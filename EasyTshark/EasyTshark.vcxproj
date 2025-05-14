@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Ip2RegionUtil.cpp" />
     <ClCompile Include="src\ip2region\xdb_bench.cc" />
     <ClCompile Include="src\ip2region\xdb_search.cc" />
     <ClCompile Include="src\loguru\loguru.cpp" />
@@ -216,6 +217,7 @@
     <ClInclude Include="include\rapidxml\rapidxml_utils.hpp" />
     <ClInclude Include="include\sqlite3\sqlite3.h" />
     <ClInclude Include="include\Packet.h" />
+    <ClInclude Include="include\Ip2RegionUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\capture.pcap" />

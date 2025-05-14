@@ -42,6 +42,9 @@
     <ClCompile Include="src\Packet.cpp">
       <Filter>Source\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Ip2RegionUtil.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\rapidjson\allocators.h">
@@ -189,6 +192,9 @@
       <Filter>Source\src</Filter>
     </ClInclude>
     <ClInclude Include="include\main.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Ip2RegionUtil.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

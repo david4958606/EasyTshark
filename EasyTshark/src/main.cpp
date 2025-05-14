@@ -6,11 +6,16 @@ import <format>;
 #include "Packet.h"
 #include "main.h"
 
+#include "Ip2RegionUtil.h"
+
 
 int main(int argc, char* argv[])
 {
-    const std::string filePath = "resource\\capture.pcap";
-    const std::string command  = GenerateCommand(filePath);
+    const std::string filePath{ "resource\\capture.pcap" };
+    const std::string command{ GenerateCommand(filePath) };
+
+    InitIp2RegionUtil();
+
     FormatPipeOutput(filePath, command);
     return 0;
 }
@@ -30,7 +35,9 @@ std::string GenerateCommand(const std::string& filePath)
 
     const std::string argDisplay = argDisplay1 + argDisplay2 + argDisplay3;
     const std::string command    = "\"" + tsharkPath + " " + argFile + " " + argDisplay + "\"";
-    std::cout << "Command: " << command << std::endl;
+#ifdef _DEBUG
+    std::cout << "Command: " << command << std::endl << std::endl;
+#endif
     return command;
 }
 
@@ -81,4 +88,10 @@ void FormatPipeOutput(const std::string& filePath, const std::string& command)
     {
         std::cerr << "Failed to close pipe." << std::endl;
     }
+}
+
+
+void InitIp2RegionUtil()
+{
+    Ip2RegionUtil::Instance().Init("resource\\ip2region.xdb");
 }

@@ -2,6 +2,8 @@
 import <string>;
 import <vector>;
 
+#include "document.h"
+
 
 struct Packet
 {
@@ -19,6 +21,8 @@ struct Packet
     std::string Protocol;
     std::string Info;
     uint32_t    FileOffset;
+    std::string SourceLocation;
+    std::string DestinationLocation;
 };
 
 
@@ -44,7 +48,10 @@ struct PacketHeader
     uint32_t Len;
 };
 
+typedef rapidjson::Document::AllocatorType& AllocatorType;
+
 void ParseLine(std::string line, Packet& packet);
 void PrintPacket(const Packet& packet);
 void ReadPcap(const std::string& path);
 bool ReadPacketHex(const std::string& filePath, uint32_t offset, uint32_t length, std::vector<unsigned char>& buffer);
+std::string LookUpIp(const std::string& ip);

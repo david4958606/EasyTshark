@@ -7,6 +7,7 @@ import <format>;
 
 #include "Packet.h"
 #include "document.h"
+#include "Ip2RegionUtil.h"
 #include "writer.h"
 #include "stringbuffer.h"
 
@@ -53,17 +54,22 @@ void ParseLine(std::string line, Packet& packet)
     }
 }
 
+
 void PrintPacket(const Packet& packet)
 {
-    rapidjson::Document                 pktObj;
-    rapidjson::Document::AllocatorType& allocator = pktObj.GetAllocator();
+    rapidjson::Document pktObj;
+    AllocatorType       allocator           = pktObj.GetAllocator();
+    const std::string   sourceLocation      = LookUpIp(packet.SourceIp);
+    const std::string   destinationLocation = LookUpIp(packet.DestinationIp);
     pktObj.SetObject();
     pktObj.AddMember("FrameNumber", packet.FrameNumber, allocator);
     pktObj.AddMember("Time", rapidjson::Value(packet.Time.c_str(), allocator), allocator);
     pktObj.AddMember("CapLen", packet.CapLen, allocator);
     pktObj.AddMember("SourceIp", rapidjson::Value(packet.SourceIp.c_str(), allocator), allocator);
+    pktObj.AddMember("SourceLocation", rapidjson::Value(sourceLocation.c_str(), allocator), allocator);
     pktObj.AddMember("SourcePort", packet.SourcePort, allocator);
     pktObj.AddMember("DestinationIp", rapidjson::Value(packet.DestinationIp.c_str(), allocator), allocator);
+    pktObj.AddMember("DestinationLocation", rapidjson::Value(destinationLocation.c_str(), allocator), allocator);
     pktObj.AddMember("DestinationPort", packet.DestinationPort, allocator);
     pktObj.AddMember("Protocol", rapidjson::Value(packet.Protocol.c_str(), allocator), allocator);
     pktObj.AddMember("Info", rapidjson::Value(packet.Info.c_str(), allocator), allocator);
@@ -75,6 +81,7 @@ void PrintPacket(const Packet& packet)
 
     std::cout << buffer.GetString() << std::endl;
 }
+
 
 void ReadPcap(const std::string& path)
 {
@@ -113,6 +120,7 @@ void ReadPcap(const std::string& path)
     std::cout << "Finished reading PCAP file." << std::endl;
 }
 
+
 bool ReadPacketHex(const std::string&          filePath,
                    const uint32_t              offset,
                    const uint32_t              length,
@@ -147,4 +155,10 @@ bool ReadPacketHex(const std::string&          filePath,
     }
     file.close();
     return true;
+}
+
+
+std::string LookUpIp(const std::string& ip)
+{
+    return Ip2RegionUtil::Instance().GetIpLocation(ip);
 }
