@@ -126,7 +126,8 @@ void TsharkManager::PrintAllPackets() const
         rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
         pktObj.Accept(writer);
 
-        std::cout << buffer.GetString() << std::endl;
+        // std::cout << buffer.GetString() << std::endl;
+        LOG_F(INFO, buffer.GetString());
     }
 }
 
@@ -143,7 +144,8 @@ bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
     std::ifstream file(CurrentFilePath, std::ios::binary);
     if (!file)
     {
-        std::cerr << "Failed to open file: " << CurrentFilePath << std::endl;
+        const std::string err = "Failed to open file: " + CurrentFilePath;
+        LOG_F(ERROR, err.c_str());
         return false;
     }
 
@@ -153,7 +155,8 @@ bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
     file.seekg(offset, std::ios::beg);
     if (!file)
     {
-        std::cerr << "Failed to seek to offset: " << offset << std::endl;
+        const std::string err = "Failed to seek to offset: " + std::to_string(offset);
+        LOG_F(ERROR, err.c_str());
         return false;
     }
     // Read the specified length of data
@@ -161,13 +164,13 @@ bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
     file.read(reinterpret_cast<char*>(data.data()), length);
     if (!file)
     {
-        std::cerr << "Failed to read data from file." << std::endl;
+        LOG_F(ERROR, "Failed to read data from file.");
         return false;
     }
     // Check if the read was successful
     if (file.gcount() != length)
     {
-        std::cerr << "Read less data than expected." << std::endl;
+        LOG_F(ERROR, "Read less data than expected.");
         return false;
     }
     file.close();
