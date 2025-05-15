@@ -161,11 +161,11 @@
     <ClCompile Include="src\ip2region\xdb_search.cc" />
     <ClCompile Include="src\loguru\loguru.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Packet.cpp" />
     <ClCompile Include="src\sqlite3\sqlite3.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
     </ClCompile>
+    <ClCompile Include="src\TsharkManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\httplib\httplib.h" />
@@ -216,8 +216,9 @@
     <ClInclude Include="include\rapidxml\rapidxml_print.hpp" />
     <ClInclude Include="include\rapidxml\rapidxml_utils.hpp" />
     <ClInclude Include="include\sqlite3\sqlite3.h" />
-    <ClInclude Include="include\Packet.h" />
     <ClInclude Include="include\Ip2RegionUtil.h" />
+    <ClInclude Include="include\TsharkDataType.h" />
+    <ClInclude Include="include\TsharkManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\capture.pcap" />

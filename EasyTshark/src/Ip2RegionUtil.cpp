@@ -33,6 +33,11 @@ bool Ip2RegionUtil::Init(const std::string& xdbFilePath)
     return true;
 }
 
+void Ip2RegionUtil::UnInit()
+{
+    return;
+}
+
 
 /// @brief Get the location of the IP address
 std::string Ip2RegionUtil::GetIpLocation(const std::string& ip) const

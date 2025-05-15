@@ -1,28 +1,27 @@
 ﻿#pragma once
-import <string>;
+import <iostream>;
+import <cstdio>;
+import <cstdlib>;
+import <cstring>;
 import <vector>;
-
-#include "document.h"
-
 
 struct Packet
 {
-    // -e frame.number -e frame.time -e ip.src -e ipv6.src
-    // -e tcp.srcport -e udp.srcport -e ip.dst -e ipv6.dst
-    // -e tcp.dstport -e udp.dstport
-    // -e _ws.col.Protocol -e _ws.col.Info
     int         FrameNumber;
     std::string Time;
+    std::string SourceMac;
+    std::string DestinationMac;
     uint32_t    CapLen;
+    uint32_t    Len;
     std::string SourceIp;
-    int         SourcePort;
+    std::string SourceLocation;
+    uint16_t    SourcePort;
     std::string DestinationIp;
-    int         DestinationPort;
+    std::string DestinationLocation;
+    uint16_t    DestinationPort;
     std::string Protocol;
     std::string Info;
     uint32_t    FileOffset;
-    std::string SourceLocation;
-    std::string DestinationLocation;
 };
 
 
@@ -38,7 +37,6 @@ struct PcapHeader
     uint32_t Network;      // 4 bytes 41 02 00 00
 };
 
-
 // PCAP Packet Header
 struct PacketHeader
 {
@@ -47,11 +45,3 @@ struct PacketHeader
     uint32_t CapLen;
     uint32_t Len;
 };
-
-typedef rapidjson::Document::AllocatorType& AllocatorType;
-
-void ParseLine(std::string line, Packet& packet);
-void PrintPacket(const Packet& packet);
-void ReadPcap(const std::string& path);
-bool ReadPacketHex(const std::string& filePath, uint32_t offset, uint32_t length, std::vector<unsigned char>& buffer);
-std::string LookUpIp(const std::string& ip);

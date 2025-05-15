@@ -45,6 +45,9 @@
     <ClCompile Include="src\Ip2RegionUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\TsharkManager.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\rapidjson\allocators.h">
@@ -195,6 +198,9 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\Ip2RegionUtil.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\TsharkManager.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

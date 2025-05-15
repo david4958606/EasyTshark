@@ -9,6 +9,7 @@ class Ip2RegionUtil
 public:
     static Ip2RegionUtil& Instance();
     bool                  Init(const std::string& xdbFilePath);
+    void                  UnInit();
     std::string           GetIpLocation(const std::string& ip) const;
 
 private:
