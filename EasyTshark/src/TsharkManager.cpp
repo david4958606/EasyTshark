@@ -129,6 +129,7 @@ void TsharkManager::PrintAllPackets() const
         // std::cout << buffer.GetString() << std::endl;
         LOG_F(INFO, buffer.GetString());
     }
+    LOG_F(INFO, "Analyse Complete! Total packets: %d", AllPackets.size());
 }
 
 bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
