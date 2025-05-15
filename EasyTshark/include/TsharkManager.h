@@ -23,6 +23,8 @@ public:
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 
+    static std::string ConvertTimeStamp(const std::string& timestampStr);
+
     std::string TsharkPath;
 
     std::string CurrentFilePath;

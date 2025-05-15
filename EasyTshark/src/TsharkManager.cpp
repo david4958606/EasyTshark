@@ -5,11 +5,11 @@ import <format>;
 import <cassert>;
 import <sstream>;
 import <fstream>;
+import <chrono>;
 
 
 #include "document.h"
 #include "writer.h"
-#include "prettywriter.h"
 #include "stringbuffer.h"
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
@@ -212,7 +212,7 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
     if (fields.size() >= 16)
     {
         packet->FrameNumber    = std::stoi(fields[0]);
-        packet->Time           = fields[1];
+        packet->Time           = ConvertTimeStamp(fields[1]);
         packet->Len            = std::stoi(fields[2]);
         packet->CapLen         = std::stoi(fields[3]);
         packet->SourceMac      = fields[4];
@@ -233,4 +233,32 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
         return true;
     }
     return false;
+}
+
+std::string TsharkManager::ConvertTimeStamp(const std::string& timestampStr)
+{
+    const size_t dotPos = timestampStr.find('.');
+    if (dotPos == std::string::npos)
+    {
+        LOG_F(ERROR, "Invalid timestamp format.");
+        throw std::invalid_argument("Invalid timestamp format.");
+    }
+
+    const std::string secPartStr  = timestampStr.substr(0, dotPos);
+    std::string       fracPartStr = timestampStr.substr(dotPos + 1);
+
+    while (fracPartStr.length() < 6) fracPartStr += '0';
+    if (fracPartStr.length() > 6) fracPartStr = fracPartStr.substr(0, 6);
+    const std::time_t seconds = std::stoll(secPartStr);
+    const int         micros  = std::stoi(fracPartStr);
+
+    // 转为系统时间
+    std::tm tm = *std::gmtime(&seconds); // 若想用本地时间可换成 std::localtime
+
+    // 格式化输出
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    oss << "." << std::setw(6) << std::setfill('0') << micros;
+
+    return oss.str();
 }
