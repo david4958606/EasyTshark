@@ -7,6 +7,11 @@ import <unordered_map>;
 #include "TsharkDataType.h"
 
 
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+#endif
+
 class TsharkManager
 {
 public:
@@ -19,6 +24,8 @@ public:
     void PrintAllPackets() const;
 
     bool ReadPacketHex(uint32_t frameNumber, std::vector<unsigned char>& data);
+
+    std::vector<AdapterInfo> GetNetworkAdapters();
 
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
