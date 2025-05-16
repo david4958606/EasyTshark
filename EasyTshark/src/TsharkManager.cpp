@@ -6,6 +6,8 @@ import <cassert>;
 import <sstream>;
 import <fstream>;
 import <chrono>;
+import <set>;
+import <regex>;
 
 
 #include "document.h"
@@ -60,7 +62,7 @@ bool TsharkManager::ReadPcap(const std::string& path)
         command += " ";
     }
 
-    FILE* pipe = _popen(command.c_str(), "r");
+    FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
     {
         std::cerr << "Failed to open pipe." << std::endl;
@@ -88,7 +90,7 @@ bool TsharkManager::ReadPcap(const std::string& path)
     }
 
 
-    if (_pclose(pipe) == -1)
+    if (pclose(pipe) == -1)
     {
         std::cerr << "Failed to close pipe." << std::endl;
     }
@@ -176,6 +178,59 @@ bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
     }
     file.close();
     return true;
+}
+
+std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters()
+{
+    std::set<std::string>    specialInterfaces = { "sshdump", "ciscodump", "udpdump", "randpkt" };
+    std::vector<AdapterInfo> interfaces;
+
+    std::string                              cmd = TsharkPath + " -D";
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe)
+    {
+        LOG_F(ERROR, "Failed to open pipe.");
+        throw std::runtime_error("Failed to run tshark command.");
+    }
+
+    std::ostringstream output;
+    char               buffer[512];
+    while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr)
+    {
+        output << buffer;
+    }
+
+    std::regex         lineRegex(R"(^\d+\.\s+([^\s]+)\s+\((.+)\)$)");
+    std::regex         simpleRegex(R"(^\d+\.\s+([^\s]+)$)");
+    std::istringstream stream(output.str());
+    std::string        line;
+    int                index = 1;
+
+    while (std::getline(stream, line))
+    {
+        std::smatch match;
+        AdapterInfo adapter;
+
+        if (std::regex_match(line, match, lineRegex) && match.size() == 3)
+        {
+            adapter.Name   = match[1];
+            adapter.Remark = match[2];
+        }
+        else if (std::regex_match(line, match, simpleRegex) && match.size() == 2)
+        {
+            adapter.Name = match[1];
+        }
+        else
+        {
+            continue; // Unrecognized line format
+        }
+
+        if (specialInterfaces.count(adapter.Name)) continue;
+
+        adapter.Id = index++;
+        interfaces.push_back(adapter);
+    }
+    return interfaces;
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)

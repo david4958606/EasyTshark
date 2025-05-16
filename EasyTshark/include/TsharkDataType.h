@@ -45,3 +45,11 @@ struct PacketHeader
     uint32_t CapLen;
     uint32_t Len;
 };
+
+// Network Adapter
+struct AdapterInfo
+{
+    int         Id;
+    std::string Name;
+    std::string Remark;
+};

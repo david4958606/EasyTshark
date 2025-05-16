@@ -18,6 +18,13 @@ int main(int argc, char* argv[])
     TsharkManager         tsharkManager(cwd.string());
     tsharkManager.ReadPcap("resource\\capture.pcap");
     tsharkManager.PrintAllPackets();
+
+    std::cout << "\n\n";
+    std::vector<AdapterInfo> adaptors = tsharkManager.GetNetworkAdapters();
+    for (auto& item : adaptors)
+    {
+        LOG_F(INFO, "网卡[%d]: name[%s] remark[%s]", item.Id, item.Name.c_str(), item.Remark.c_str());
+    }
     return 0;
 }
 
