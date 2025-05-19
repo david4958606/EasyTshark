@@ -39,9 +39,6 @@
     <ClCompile Include="src\ip2region\xdb_search.cc">
       <Filter>Source\third_party</Filter>
     </ClCompile>
-    <ClCompile Include="src\Packet.cpp">
-      <Filter>Source\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\Ip2RegionUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -191,9 +188,6 @@
     <ClInclude Include="include\ip2region\xdb_search.h">
       <Filter>Include\third_party</Filter>
     </ClInclude>
-    <ClInclude Include="include\Packet.h">
-      <Filter>Source\src</Filter>
-    </ClInclude>
     <ClInclude Include="include\main.h">
       <Filter>Include</Filter>
     </ClInclude>
@@ -203,11 +197,13 @@
     <ClInclude Include="include\TsharkManager.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="include\TsharkDataType.h">
+      <Filter>Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb">
       <Filter>Resource</Filter>
     </None>
-    <None Include="resource\capture.pcap" />
   </ItemGroup>
 </Project>

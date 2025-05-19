@@ -221,7 +221,6 @@
     <ClInclude Include="include\TsharkManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resource\capture.pcap" />
     <None Include="resource\ip2region.xdb" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
