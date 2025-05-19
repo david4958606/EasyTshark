@@ -1,5 +1,6 @@
 ﻿#pragma once
 import <string>;
+import <thread>;
 import <unordered_map>;
 
 #include "document.h"
@@ -27,6 +28,10 @@ public:
 
     std::vector<AdapterInfo> GetNetworkAdapters();
 
+    bool StartCapture(const std::string& adapterName);
+
+    bool StopCapture();
+
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 
@@ -39,6 +44,12 @@ private:
     Ip2RegionUtil& IpUtil = Ip2RegionUtil::Instance();
 
     std::unordered_map<uint32_t, std::shared_ptr<Packet>> AllPackets;
+
+    void CaptureWorkThreadEntry(const std::string& adapterName);
+
+    std::shared_ptr<std::thread> CaptureWorkThread;
+
+    bool StopFlag;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

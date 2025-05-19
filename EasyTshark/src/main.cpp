@@ -16,16 +16,20 @@ int main(int argc, char* argv[])
     InitIp2RegionUtil();
     std::filesystem::path cwd = std::filesystem::current_path();
     TsharkManager         tsharkManager(cwd.string());
-    tsharkManager.ReadPcap("resource\\capture.pcap");
-    tsharkManager.PrintAllPackets();
+    tsharkManager.StartCapture("WLAN");
 
-    std::cout << "\n\n";
-    std::vector<AdapterInfo> adaptors = tsharkManager.GetNetworkAdapters();
-    for (auto& item : adaptors)
+    std::string input;
+    while (true)
     {
-        LOG_F(INFO, "网卡[%d]: name[%s] remark[%s]", item.Id, item.Name.c_str(), item.Remark.c_str());
+        std::cout << "请输入q退出抓包: ";
+        std::cin >> input;
+        if (input == "q")
+        {
+            tsharkManager.StopCapture();
+            break;
+        }
     }
-    return 0;
+    tsharkManager.PrintAllPackets();
 }
 
 void InitIp2RegionUtil()

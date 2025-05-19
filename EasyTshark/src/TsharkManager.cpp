@@ -8,6 +8,8 @@ import <fstream>;
 import <chrono>;
 import <set>;
 import <regex>;
+import <thread>;
+import <ctime>;
 
 
 #include "document.h"
@@ -225,12 +227,29 @@ std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters()
             continue; // Unrecognized line format
         }
 
-        if (specialInterfaces.count(adapter.Name)) continue;
+        if (specialInterfaces.contains(adapter.Name)) continue;
 
         adapter.Id = index++;
         interfaces.push_back(adapter);
     }
     return interfaces;
+}
+
+bool TsharkManager::StartCapture(const std::string& adapterName)
+{
+    LOG_F(INFO, "Starting Capture @ %s", adapterName.c_str());
+    StopFlag          = false;
+    CaptureWorkThread = std::make_shared<std::thread>(&TsharkManager::CaptureWorkThreadEntry, this,
+                                                      "\"" + adapterName + "\"");
+    return true;
+}
+
+bool TsharkManager::StopCapture()
+{
+    LOG_F(INFO, "Stopping Capture...");
+    StopFlag = true;
+    CaptureWorkThread->join();
+    return true;
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)
@@ -294,30 +313,100 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
     return false;
 }
 
+using namespace std::chrono;
+
 std::string TsharkManager::ConvertTimeStamp(const std::string& timestampStr)
 {
     const size_t dotPos = timestampStr.find('.');
     if (dotPos == std::string::npos)
     {
-        LOG_F(ERROR, "Invalid timestamp format.");
         throw std::invalid_argument("Invalid timestamp format.");
     }
 
+    // 拆分整数秒与微秒部分
     const std::string secPartStr  = timestampStr.substr(0, dotPos);
     std::string       fracPartStr = timestampStr.substr(dotPos + 1);
 
-    while (fracPartStr.length() < 6) fracPartStr += '0';
-    if (fracPartStr.length() > 6) fracPartStr = fracPartStr.substr(0, 6);
-    const std::time_t seconds = std::stoll(secPartStr);
-    const int         micros  = std::stoi(fracPartStr);
+    // 补齐/截断到6位微秒
+    if (fracPartStr.size() > 6) fracPartStr = fracPartStr.substr(0, 6);
+    while (fracPartStr.size() < 6) fracPartStr += '0';
 
-    // 转为系统时间
-    std::tm tm = *std::gmtime(&seconds); // 若想用本地时间可换成 std::localtime
+    const seconds      secs   = seconds{ std::stoll(secPartStr) };
+    const microseconds micros = microseconds{ std::stoi(fracPartStr) };
 
-    // 格式化输出
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-    oss << "." << std::setw(6) << std::setfill('0') << micros;
+    // 构造 UTC 时间点
+    const sys_time<microseconds> tp = time_point_cast<microseconds>(sys_seconds{ secs } + micros);
 
-    return oss.str();
+    // 使用 std::format 输出（UTC时间）："2025-05-19 08:52:34.123456"
+    return std::format("{:%Y-%m-%d %H:%M:%S}.{:06}", tp, micros.count() % 1'000'000);
+}
+
+void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
+{
+    std::string              captureFile = "resource\\capture.pcap";
+    std::vector<std::string> tsharkArgs  = {
+        TsharkPath,
+        "-i", adapterName.c_str(),
+        "-w", captureFile, // 默认将采集到的数据包写入到这个文件下
+        "-F", "pcap",      // 指定存储的格式为PCAP格式
+        "-T", "fields",
+        "-e", "frame.number",
+        "-e", "frame.time_epoch",
+        "-e", "frame.len",
+        "-e", "frame.cap_len",
+        "-e", "eth.src",
+        "-e", "eth.dst",
+        "-e", "ip.src",
+        "-e", "ipv6.src",
+        "-e", "ip.dst",
+        "-e", "ipv6.dst",
+        "-e", "tcp.srcport",
+        "-e", "udp.srcport",
+        "-e", "tcp.dstport",
+        "-e", "udp.dstport",
+        "-e", "_ws.col.Protocol",
+        "-e", "_ws.col.Info",
+    };
+
+    std::string command;
+    command += "\"";
+    for (const auto arg : tsharkArgs)
+    {
+        command += arg;
+        command += " ";
+    }
+    command += "\"";
+    // std::cout << command << std::endl;
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+    {
+        LOG_F(ERROR, "Failed to run tshark command!");
+        return;
+    }
+
+    char buffer[4096];
+
+    uint32_t fileOffset = sizeof(PcapHeader);
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr && !StopFlag)
+    {
+        std::string line = buffer;
+        if (line.find("Capturing on") != std::string::npos)
+        {
+            continue;
+        }
+
+        auto packet = std::make_shared<Packet>();
+        if (!ParseLine(buffer, packet))
+        {
+            LOG_F(ERROR, buffer);
+            assert(false);
+        }
+        packet->FileOffset = fileOffset + sizeof(PacketHeader);
+
+        fileOffset += sizeof(PacketHeader) + packet->CapLen;
+        packet->SourceLocation = IpUtil.GetIpLocation(packet->SourceIp);
+        packet->DestinationIp  = IpUtil.GetIpLocation(packet->DestinationIp);
+
+        AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+    }
 }
