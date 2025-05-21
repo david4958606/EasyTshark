@@ -3,14 +3,15 @@ import <string>;
 import <thread>;
 import <unordered_map>;
 
+
 #include "document.h"
 #include "Ip2RegionUtil.h"
 #include "TsharkDataType.h"
-
+#include "ProcessUtil.h"
 
 #ifdef _WIN32
-#define popen _popen
-#define pclose _pclose
+#define POPEN _popen
+#define PCLOSE _pclose
 #endif
 
 class TsharkManager
@@ -50,6 +51,8 @@ private:
     std::shared_ptr<std::thread> CaptureWorkThread;
 
     bool StopFlag;
+
+    PidT CaptureTsharkPid = 0;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

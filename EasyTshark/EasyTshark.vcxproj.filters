@@ -45,6 +45,9 @@
     <ClCompile Include="src\TsharkManager.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\ProcessUtil.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\rapidjson\allocators.h">
@@ -198,6 +201,9 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\TsharkDataType.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ProcessUtil.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

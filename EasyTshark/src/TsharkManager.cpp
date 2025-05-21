@@ -64,7 +64,7 @@ bool TsharkManager::ReadPcap(const std::string& path)
         command += " ";
     }
 
-    FILE* pipe = popen(command.c_str(), "r");
+    FILE* pipe = POPEN(command.c_str(), "r");
     if (!pipe)
     {
         std::cerr << "Failed to open pipe." << std::endl;
@@ -92,7 +92,7 @@ bool TsharkManager::ReadPcap(const std::string& path)
     }
 
 
-    if (pclose(pipe) == -1)
+    if (PCLOSE(pipe) == -1)
     {
         std::cerr << "Failed to close pipe." << std::endl;
     }
@@ -188,7 +188,7 @@ std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters()
     std::vector<AdapterInfo> interfaces;
 
     std::string                              cmd = TsharkPath + " -D";
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, decltype(&PCLOSE)> pipe(POPEN(cmd.c_str(), "r"), PCLOSE);
     if (!pipe)
     {
         LOG_F(ERROR, "Failed to open pipe.");
@@ -248,6 +248,7 @@ bool TsharkManager::StopCapture()
 {
     LOG_F(INFO, "Stopping Capture...");
     StopFlag = true;
+    ProcessUtil::Kill(CaptureTsharkPid);
     CaptureWorkThread->join();
     return true;
 }
@@ -369,15 +370,15 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
     };
 
     std::string command;
-    command += "\"";
+    // command += "\"";
     for (const auto arg : tsharkArgs)
     {
         command += arg;
         command += " ";
     }
-    command += "\"";
+    // command += "\"";
     // std::cout << command << std::endl;
-    FILE* pipe = popen(command.c_str(), "r");
+    FILE* pipe = ProcessUtil::PopenEx(command.c_str(), &CaptureTsharkPid);
     if (!pipe)
     {
         LOG_F(ERROR, "Failed to run tshark command!");
