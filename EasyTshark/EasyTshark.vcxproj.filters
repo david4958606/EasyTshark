@@ -203,7 +203,7 @@
     <ClInclude Include="include\TsharkDataType.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="src\ProcessUtil.h">
+    <ClInclude Include="include\ProcessUtil.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

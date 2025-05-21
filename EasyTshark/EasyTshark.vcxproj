@@ -220,7 +220,7 @@
     <ClInclude Include="include\Ip2RegionUtil.h" />
     <ClInclude Include="include\TsharkDataType.h" />
     <ClInclude Include="include\TsharkManager.h" />
-    <ClInclude Include="src\ProcessUtil.h" />
+    <ClInclude Include="include\ProcessUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb" />
