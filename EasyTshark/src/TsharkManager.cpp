@@ -255,12 +255,17 @@ bool TsharkManager::StopCapture()
 
 void TsharkManager::StartMonitorAdaptersFlowTrend()
 {
-    std::unique_lock<std::recursive_mutex> lock(AdapterFlowTrendMapLock);
+    std::unique_lock lock(AdapterFlowTrendMapLock);
 
     AdapterFlowTrendMonitorStartTime = time(nullptr);
-
     for (std::vector<AdapterInfo> adapterList = GetNetworkAdapters(); auto& adapter : adapterList)
     {
+        if (adapter.Name.find("etwdump", 0) != std::string::npos ||
+            adapter.Name.find("USBPcap1", 0) != std::string::npos ||
+            adapter.Name.find("NPF_Loopback", 0) != std::string::npos)
+        {
+            continue;
+        }
         AdapterFlowTrendMonitorMap.insert(std::make_pair<>(adapter.Name, AdapterMonitorInfo()));
         AdapterMonitorInfo& monitorInfo = AdapterFlowTrendMonitorMap.at(adapter.Name);
 
