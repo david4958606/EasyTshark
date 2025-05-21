@@ -1,9 +1,11 @@
 ﻿#pragma once
-import <string>;
-import <thread>;
-import <unordered_map>;
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
 
 
+#include "AdapterMonitorInfo.h"
 #include "document.h"
 #include "Ip2RegionUtil.h"
 #include "TsharkDataType.h"
@@ -27,11 +29,15 @@ public:
 
     bool ReadPacketHex(uint32_t frameNumber, std::vector<unsigned char>& data);
 
-    std::vector<AdapterInfo> GetNetworkAdapters();
+    std::vector<AdapterInfo> GetNetworkAdapters() const;
 
     bool StartCapture(const std::string& adapterName);
 
     bool StopCapture();
+
+    void StartMonitorAdaptersFlowTrend();
+    void StopMonitorAdaptersFlowTrend();
+    void GetAdaptersFlowTrendData(std::map<std::string, std::map<long, long>>& flowTrendData);
 
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
@@ -39,7 +45,6 @@ private:
     static std::string ConvertTimeStamp(const std::string& timestampStr);
 
     std::string TsharkPath;
-
     std::string CurrentFilePath;
 
     Ip2RegionUtil& IpUtil = Ip2RegionUtil::Instance();
@@ -53,6 +58,12 @@ private:
     bool StopFlag;
 
     PidT CaptureTsharkPid = 0;
+
+    std::map<std::string, AdapterMonitorInfo> AdapterFlowTrendMonitorMap;
+    std::recursive_mutex                      AdapterFlowTrendMapLock;
+    time_t                                    AdapterFlowTrendMonitorStartTime = 0;
+
+    void AdapterFlowTrendMonitorThreadEntry(std::string adapterName);
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

@@ -48,6 +48,9 @@
     <ClCompile Include="src\ProcessUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\AdapterMonitorInfo.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\rapidjson\allocators.h">
@@ -204,6 +207,9 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\ProcessUtil.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AdapterMonitorInfo.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

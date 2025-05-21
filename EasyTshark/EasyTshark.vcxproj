@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AdapterMonitorInfo.cpp" />
     <ClCompile Include="src\Ip2RegionUtil.cpp" />
     <ClCompile Include="src\ip2region\xdb_bench.cc" />
     <ClCompile Include="src\ip2region\xdb_search.cc" />
@@ -221,6 +222,7 @@
     <ClInclude Include="include\TsharkDataType.h" />
     <ClInclude Include="include\TsharkManager.h" />
     <ClInclude Include="include\ProcessUtil.h" />
+    <ClInclude Include="include\AdapterMonitorInfo.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb" />

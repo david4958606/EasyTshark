@@ -1,16 +1,16 @@
 ﻿#include "TsharkManager.h"
 
-import <iostream>;
-import <format>;
-import <cassert>;
-import <sstream>;
-import <fstream>;
-import <chrono>;
-import <set>;
-import <regex>;
-import <thread>;
-import <ctime>;
-
+#include <iostream>
+#include <format>
+#include <cassert>
+#include <sstream>
+#include <fstream>
+#include <chrono>
+#include <set>
+#include <regex>
+#include <thread>
+#include <ranges>
+#include <ctime>
 
 #include "document.h"
 #include "writer.h"
@@ -20,7 +20,7 @@ import <ctime>;
 #include "TsharkDataType.h"
 
 
-TsharkManager::TsharkManager(const std::string& workDir)
+TsharkManager::TsharkManager(const std::string& workDir): StopFlag(false)
 {
     this->TsharkPath          = "\"C:\\Program Files\\Wireshark\\tshark.exe\"";
     const std::string xdbPath = workDir + "resource\\ip2region.xdb";
@@ -102,7 +102,7 @@ bool TsharkManager::ReadPcap(const std::string& path)
 
 void TsharkManager::PrintAllPackets() const
 {
-    for (const auto& [fst, snd] : AllPackets)
+    for (const auto& snd : AllPackets | std::views::values)
     {
         const std::shared_ptr<Packet> packet = snd;
 
@@ -182,9 +182,9 @@ bool TsharkManager::ReadPacketHex(const uint32_t              frameNumber,
     return true;
 }
 
-std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters()
+std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters() const
 {
-    std::set<std::string>    specialInterfaces = { "sshdump", "ciscodump", "udpdump", "randpkt" };
+    std::set<std::string> specialInterfaces = { "sshdump", "ciscodump", "udpdump", "randpkt", "USBPcap1", "etwdump" };
     std::vector<AdapterInfo> interfaces;
 
     std::string                              cmd = TsharkPath + " -D";
@@ -251,6 +251,91 @@ bool TsharkManager::StopCapture()
     ProcessUtil::Kill(CaptureTsharkPid);
     CaptureWorkThread->join();
     return true;
+}
+
+void TsharkManager::StartMonitorAdaptersFlowTrend()
+{
+    std::unique_lock<std::recursive_mutex> lock(AdapterFlowTrendMapLock);
+
+    AdapterFlowTrendMonitorStartTime = time(nullptr);
+
+    for (std::vector<AdapterInfo> adapterList = GetNetworkAdapters(); auto& adapter : adapterList)
+    {
+        AdapterFlowTrendMonitorMap.insert(std::make_pair<>(adapter.Name, AdapterMonitorInfo()));
+        AdapterMonitorInfo& monitorInfo = AdapterFlowTrendMonitorMap.at(adapter.Name);
+
+        monitorInfo.MonitorThread = std::make_shared<std::thread>(&TsharkManager::AdapterFlowTrendMonitorThreadEntry,
+                                                                  this, adapter.Name);
+        if (monitorInfo.MonitorThread == nullptr)
+        {
+            LOG_F(ERROR, "Failed to create monitor process on %s", adapter.Name.c_str());
+        }
+        else
+        {
+            LOG_F(INFO, "Success to create monitor process on：%s，monitorThread: %p",
+                  adapter.Name.c_str(),
+                  monitorInfo.MonitorThread.get());
+        }
+    }
+}
+
+void TsharkManager::StopMonitorAdaptersFlowTrend()
+{
+    std::unique_lock<std::recursive_mutex> lock(AdapterFlowTrendMapLock);
+    for (const auto& val : AdapterFlowTrendMonitorMap | std::views::values)
+    {
+        ProcessUtil::Kill(val.TsharkPid);
+    }
+
+    for (auto& [fst, snd] : AdapterFlowTrendMonitorMap)
+    {
+        // 然后关闭管道
+        PCLOSE(snd.MonitorTsharkPipe);
+
+        // 最后等待对应线程退出
+        snd.MonitorThread->join();
+
+        LOG_F(INFO, "Stop monitor flow on %s", fst.c_str());
+    }
+    AdapterFlowTrendMonitorMap.clear();
+}
+
+void TsharkManager::GetAdaptersFlowTrendData(std::map<std::string, std::map<long, long>>& flowTrendData)
+{
+    const auto timeNow = time(nullptr);
+
+    // 数据从最左边冒出来
+    // 一开始：以最开始监控时间为左起点，终点为未来300秒
+    // 随着时间推移，数据逐渐填充完这300秒
+    // 超过300秒之后，结束节点就是当前，开始节点就是当前-300
+    const auto startWindow = timeNow - AdapterFlowTrendMonitorStartTime > 300
+                                 ? timeNow - 300
+                                 : AdapterFlowTrendMonitorStartTime;
+    const auto endWindow = timeNow - AdapterFlowTrendMonitorStartTime > 300
+                               ? timeNow
+                               : AdapterFlowTrendMonitorStartTime + 300;
+
+    AdapterFlowTrendMapLock.lock();
+    for (auto [fst, snd] : AdapterFlowTrendMonitorMap)
+    {
+        flowTrendData.insert(std::make_pair<>(fst, std::map<long, long>()));
+
+        // 从当前时间戳向前倒推300秒，构造map
+        for (time_t t = startWindow; t <= endWindow; t++)
+        {
+            // 如果trafficPerSecond中存在该时间戳，则使用已有数据；否则填充为0
+            if (snd.FlowTrendData.contains(t))
+            {
+                flowTrendData[fst][t] = snd.FlowTrendData.at(t);
+            }
+            else
+            {
+                flowTrendData[fst][t] = 0;
+            }
+        }
+    }
+
+    AdapterFlowTrendMapLock.unlock();
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)
@@ -410,4 +495,69 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
 
         AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
     }
+}
+
+void TsharkManager::AdapterFlowTrendMonitorThreadEntry(std::string adapterName)
+{
+    AdapterFlowTrendMapLock.lock();
+    if (!AdapterFlowTrendMonitorMap.contains(adapterName))
+    {
+        AdapterFlowTrendMapLock.unlock();
+        return;
+    }
+    AdapterFlowTrendMapLock.unlock();
+    char buffer[256] = { 0 };
+    std::map<long, long>& trafficPerSecond = AdapterFlowTrendMonitorMap[adapterName].FlowTrendData;
+    const std::string tsharkCmd = TsharkPath + " -i \"" + adapterName + "\" -T fields -e frame.time_epoch -e frame.len";
+
+    LOG_F(INFO, "Start flow monitor on: %s", tsharkCmd.c_str());
+
+    PidT  tsharkPid = 0;
+    FILE* pipe      = ProcessUtil::PopenEx(tsharkCmd.c_str(), &tsharkPid);
+    if (!pipe)
+    {
+        throw std::runtime_error("Failed to run tshark command.");
+    }
+
+    // Save the pipe
+    AdapterFlowTrendMapLock.lock();
+    AdapterFlowTrendMonitorMap[adapterName].MonitorTsharkPipe = pipe;
+    AdapterFlowTrendMonitorMap[adapterName].TsharkPid         = tsharkPid;
+    AdapterFlowTrendMapLock.unlock();
+
+    // Read the output from tshark
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
+        std::string        line(buffer);
+        std::istringstream iss(line);
+        std::string        timestampStr, lengthStr;
+
+        if (line.find("Capturing") != std::string::npos || line.find("captured") != std::string::npos)
+        {
+            continue;
+        }
+
+        // Parse the timestamp and length from the line
+        if (!(iss >> timestampStr >> lengthStr))
+        {}
+        try
+        {
+            long       timestamp    = static_cast<long>(std::stod(timestampStr));
+            const long packetLength = std::stol(lengthStr);
+            trafficPerSecond[timestamp] += packetLength;
+            while (trafficPerSecond.size() > 300)
+            {
+                LOG_F(INFO, "Removing old data for second: %ld, Traffic: %ld bytes",
+                      trafficPerSecond.begin()->first,
+                      trafficPerSecond.begin()->second);
+                trafficPerSecond.erase(trafficPerSecond.begin());
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_F(ERROR, "Error parsing tshark output: %s", line.c_str());
+            LOG_F(ERROR, "Exception: %s", e.what());
+        }
+    }
+    LOG_F(INFO, "adapterFlowTrendMonitorThreadEntry ENDED");
 }
