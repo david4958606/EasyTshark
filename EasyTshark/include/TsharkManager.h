@@ -39,6 +39,8 @@ public:
     void StopMonitorAdaptersFlowTrend();
     void GetAdaptersFlowTrendData(std::map<std::string, std::map<long, long>>& flowTrendData);
 
+    bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result);
+
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 
@@ -46,6 +48,7 @@ private:
 
     std::string TsharkPath;
     std::string CurrentFilePath;
+    std::string EditcapPath;
 
     Ip2RegionUtil& IpUtil = Ip2RegionUtil::Instance();
 

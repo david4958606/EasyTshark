@@ -45,6 +45,11 @@ namespace ProcessUtil {
         return kill(pid, SIGTERM);
     }
 
+    bool Exec(std::string cmdLine)
+    {
+        return std::system(cmdline.c_str()) == 0;
+    }
+
 } // namespace ProcessUtil
 
 #elif defined(_WIN32)
@@ -134,6 +139,33 @@ namespace ProcessUtil
 
         CloseHandle(hProcess);
         return 0;
+    }
+
+    bool Exec(std::string cmdLine)
+    {
+        PROCESS_INFORMATION piProcInfo;
+        STARTUPINFOA        siStartInfo;
+        ZeroMemory(&piProcInfo, sizeof(piProcInfo));
+        ZeroMemory(&siStartInfo, sizeof(siStartInfo));
+        if (CreateProcessA(
+            nullptr,               // No module name (use command line)
+            (LPSTR)cmdLine.data(), // Command line
+            nullptr,               // Process handle not inheritable
+            nullptr,               // Thread handle not inheritable
+            TRUE,                  // Set handle inheritance
+            CREATE_NO_WINDOW,      // No window
+            nullptr,               // Use parent's environment block
+            nullptr,               // Use parent's starting directory
+            &siStartInfo,          // Pointer to STARTUPINFO structure
+            &piProcInfo            // Pointer to PROCESS_INFORMATION structure
+        ))
+        {
+            WaitForSingleObject(piProcInfo.hProcess, INFINITE);
+            CloseHandle(piProcInfo.hProcess);
+            CloseHandle(piProcInfo.hThread);
+            return true;
+        }
+        return false; // Failed to create process
     }
 } // namespace ProcessUtil
 #endif

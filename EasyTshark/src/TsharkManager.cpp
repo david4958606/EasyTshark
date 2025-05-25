@@ -17,6 +17,7 @@
 #include "stringbuffer.h"
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
+#include "MiscUtil.h"
 #include "TsharkDataType.h"
 
 
@@ -24,6 +25,7 @@ TsharkManager::TsharkManager(const std::string& workDir): StopFlag(false)
 {
     this->TsharkPath          = "\"C:\\Program Files\\Wireshark\\tshark.exe\"";
     const std::string xdbPath = workDir + "resource\\ip2region.xdb";
+    this->EditcapPath         = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
     IpUtil.Init(xdbPath);
 }
 
@@ -341,6 +343,55 @@ void TsharkManager::GetAdaptersFlowTrendData(std::map<std::string, std::map<long
     }
 
     AdapterFlowTrendMapLock.unlock();
+}
+
+bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& result)
+{
+    std::string tmpFilePath = MiscUtil::GetRandomString(10) + ".pcap";
+    std::string splitCmd    = EditcapPath + " -r " + CurrentFilePath + " " + tmpFilePath + " " +
+        std::to_string(frameNumber) + "-" + std::to_string(frameNumber);
+
+    if (!ProcessUtil::Exec(splitCmd))
+    {
+        LOG_F(ERROR, "Error in executing command: %s", splitCmd.c_str());
+        remove(tmpFilePath.c_str());
+        return false;
+    }
+    std::string                              cmd = TsharkPath + " -r " + tmpFilePath + " -T pdml";
+    std::unique_ptr<FILE, decltype(&PCLOSE)> pipe(ProcessUtil::PopenEx(cmd.c_str()), PCLOSE);
+
+    if (!pipe)
+    {
+        LOG_F(ERROR, "Failed to run tshark command.");
+        remove(tmpFilePath.c_str());
+        return false;
+    }
+
+    char        buffer[8192] = {};
+    std::string tsharkResult;
+    setvbuf(pipe.get(), nullptr, _IOFBF, sizeof(buffer));
+    while (fgets(buffer, sizeof(buffer) - 1, pipe.get()) != nullptr)
+    {
+        tsharkResult += buffer;
+        memset(buffer, 0, sizeof(buffer));
+    }
+    remove(tmpFilePath.c_str());
+
+    // XML 2 JSON
+    rapidjson::Document detailJson;
+    if (!MiscUtil::Xml2Json(tsharkResult, detailJson))
+    {
+        LOG_F(ERROR, "XML 2 JSON FAILED");
+        return false;
+    }
+
+    rapidjson::StringBuffer stringBuffer;
+    rapidjson::PrettyWriter writer(stringBuffer);
+    detailJson.Accept(writer);
+
+    result = stringBuffer.GetString();
+
+    return true;
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)

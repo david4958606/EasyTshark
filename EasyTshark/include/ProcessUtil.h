@@ -14,4 +14,5 @@ namespace ProcessUtil
 {
     FILE* PopenEx(std::string command, PidT* pidOut = nullptr);
     int   Kill(PidT pid);
+    bool  Exec(std::string cmdLine);
 }
