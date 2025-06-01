@@ -365,3 +365,4 @@ FodyWeavers.xsd
 *.del
 temp.txt
 *.pcap
+*.db
