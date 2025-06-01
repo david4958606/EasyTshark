@@ -385,6 +385,9 @@ bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& resu
         return false;
     }
 
+    MiscUtil::TranslateShowNameFields(detailJson["pdml"]["packet"][0]["proto"], detailJson.GetAllocator());
+
+
     rapidjson::StringBuffer stringBuffer;
     rapidjson::PrettyWriter writer(stringBuffer);
     detailJson.Accept(writer);

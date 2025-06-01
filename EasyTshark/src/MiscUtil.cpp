@@ -57,43 +57,102 @@ void MiscUtil::XmlToJsonRecursive(rapidjson::Value&                   json,
                                   rapidxml::xml_node<>*               node,
                                   rapidjson::Document::AllocatorType& allocator)
 {
-    for (rapidxml::xml_node<>* cur_node = node->first_node(); cur_node; cur_node = cur_node->next_sibling())
+    for (rapidxml::xml_node<>* curNode = node->first_node(); curNode; curNode = curNode->next_sibling())
     {
         // 检查是否需要跳过节点
-        rapidxml::xml_attribute<>* hide_attr = cur_node->first_attribute("hide");
-        if (hide_attr && std::string(hide_attr->value()) == "yes")
+        if (rapidxml::xml_attribute<>* hideAttr = curNode->first_attribute("hide"); hideAttr && std::string(
+            hideAttr->value()) == "yes")
         {
             continue; // 如果 hide 属性值为 "true"，跳过该节点
         }
 
         // 检查是否已经有该节点名称的数组
         rapidjson::Value* array = nullptr;
-        if (json.HasMember(cur_node->name()))
+        if (json.HasMember(curNode->name()))
         {
-            array = &json[cur_node->name()];
+            array = &json[curNode->name()];
         }
         else
         {
-            rapidjson::Value node_array(rapidjson::kArrayType); // 创建新的数组
-            json.AddMember(rapidjson::Value(cur_node->name(), allocator).Move(), node_array, allocator);
-            array = &json[cur_node->name()];
+            rapidjson::Value nodeArray(rapidjson::kArrayType); // 创建新的数组
+            json.AddMember(rapidjson::Value(curNode->name(), allocator).Move(), nodeArray, allocator);
+            array = &json[curNode->name()];
         }
 
         // 创建一个 JSON 对象代表当前节点
-        rapidjson::Value child_json(rapidjson::kObjectType);
+        rapidjson::Value childJson(rapidjson::kObjectType);
 
         // 处理节点的属性
-        for (rapidxml::xml_attribute<>* attr = cur_node->first_attribute(); attr; attr = attr->next_attribute())
+        for (rapidxml::xml_attribute<>* attr = curNode->first_attribute(); attr; attr = attr->next_attribute())
         {
             rapidjson::Value attr_name(attr->name(), allocator);
             rapidjson::Value attr_value(attr->value(), allocator);
-            child_json.AddMember(attr_name, attr_value, allocator);
+            childJson.AddMember(attr_name, attr_value, allocator);
         }
 
         // 递归处理子节点
-        XmlToJsonRecursive(child_json, cur_node, allocator);
+        XmlToJsonRecursive(childJson, curNode, allocator);
 
         // 将当前节点对象添加到对应数组中
-        array->PushBack(child_json, allocator);
+        array->PushBack(childJson, allocator);
+    }
+}
+
+void MiscUtil::TranslateShowNameFields(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator)
+{
+    if (value.IsObject())
+    {
+        if (value.HasMember("showname") && value["showname"].IsString())
+        {
+            std::string showname = value["showname"].GetString();
+            for (const auto& pair : translationMap)
+            {
+                const std::string& key         = pair.first;
+                const std::string& translation = pair.second;
+
+                if (showname.find(key) == 0)
+                {
+                    // 替换静态部分
+                    showname.replace(0, key.length(), translation);
+                    value["showname"].SetString(showname.c_str(), allocator);
+                    break;
+                }
+            }
+        }
+
+        else if (value.HasMember("show") && value["show"].IsString())
+        {
+            std::string showname = value["show"].GetString();
+            for (const auto& pair : translationMap)
+            {
+                const std::string& key         = pair.first;
+                const std::string& translation = pair.second;
+
+                // 检查字段A中是否包含translationMap中的key（静态部分）
+                if (showname.find(key) == 0)
+                {
+                    // 替换静态部分
+                    showname.replace(0, key.length(), translation);
+                    value["show"].SetString(showname.c_str(), allocator);
+                    break;
+                }
+            }
+        }
+
+        if (value.HasMember("field") && value["field"].IsArray())
+        {
+            // 直接引用 "field" 数组中的每个元素进行递归翻译
+            for (rapidjson::Value& fieldArray = value["field"]; auto& field : fieldArray.GetArray())
+            {
+                TranslateShowNameFields(field, allocator); // 递归处理每个 field
+            }
+        }
+    }
+    else if (value.IsArray())
+    {
+        for (auto& item : value.GetArray())
+        {
+            TranslateShowNameFields(item, allocator); // 递归处理每个元素
+        }
     }
 }

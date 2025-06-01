@@ -4,8 +4,6 @@
 
 #include "main.h"
 
-#include "stringbuffer.h"
-#include "writer.h"
 #include "TsharkManager.h"
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
