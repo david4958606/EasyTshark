@@ -26,6 +26,7 @@ TsharkManager::TsharkManager(const std::string& workDir): StopFlag(false)
     this->TsharkPath          = "\"C:\\Program Files\\Wireshark\\tshark.exe\"";
     const std::string xdbPath = workDir + "resource\\ip2region.xdb";
     this->EditcapPath         = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
+    Storage                   = std::make_shared<TsharkDatabase>(workDir + "/tshark.db");
     IpUtil.Init(xdbPath);
 }
 
@@ -241,6 +242,7 @@ bool TsharkManager::StartCapture(const std::string& adapterName)
 {
     LOG_F(INFO, "Starting Capture @ %s", adapterName.c_str());
     StopFlag          = false;
+    StorageThread     = std::make_shared<std::thread>(&TsharkManager::StorageThreadEntry, this);
     CaptureWorkThread = std::make_shared<std::thread>(&TsharkManager::CaptureWorkThreadEntry, this,
                                                       "\"" + adapterName + "\"");
     return true;
@@ -252,6 +254,9 @@ bool TsharkManager::StopCapture()
     StopFlag = true;
     ProcessUtil::Kill(CaptureTsharkPid);
     CaptureWorkThread->join();
+    CaptureWorkThread.reset();
+    StorageThread->join();
+    StorageThread.reset();
     return true;
 }
 
@@ -345,7 +350,7 @@ void TsharkManager::GetAdaptersFlowTrendData(std::map<std::string, std::map<long
     AdapterFlowTrendMapLock.unlock();
 }
 
-bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& result)
+bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& result) const
 {
     std::string tmpFilePath = MiscUtil::GetRandomString(10) + ".pcap";
     std::string splitCmd    = EditcapPath + " -r " + CurrentFilePath + " " + tmpFilePath + " " +
@@ -416,22 +421,21 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
     }
     fields.push_back(line.substr(start));
 
-    // 0: frame.number
-    // 1: frame.time_epoch
-    // 2: frame.len
-    // 3: frame.cap_len
-    // 4: eth.src
-    // 5: eth.dst
-    // 6: ip.src
-    // 7: ipv6.src
-    // 8: ip.dst
-    // 9: ipv6.dst
-    // 10: tcp.srcport
-    // 11: udp.srcport
-    // 12: tcp.dstport
-    // 13: udp.dstport
-    // 14: _ws.col.Protocol
-    // 15: _ws.col.Info
+    // 00 int         FrameNumber;
+    // 01 std::string Time;
+    // 02 std::string SourceMac;
+    // 03 std::string DestinationMac;
+    // 04 uint32_t    CapLen;
+    // 05 uint32_t    Len;
+    // 06 std::string SourceIp;
+    // 07 std::string SourceLocation;
+    // 08 uint16_t    SourcePort;
+    // 09 std::string DestinationIp;
+    // 10 std::string DestinationLocation;
+    // 11 uint16_t    DestinationPort;
+    // 12 std::string Protocol;
+    // 13 std::string Info;
+    // 14 uint32_t    FileOffset;
     if (fields.size() >= 16)
     {
         packet->FrameNumber    = std::stoi(fields[0]);
@@ -494,6 +498,7 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
         "-i", adapterName.c_str(),
         "-w", captureFile, // 默认将采集到的数据包写入到这个文件下
         "-F", "pcap",      // 指定存储的格式为PCAP格式
+        "-l",              // 指定tshark使用行缓冲模式，及时打印输出抓包的包信息
         "-T", "fields",
         "-e", "frame.number",
         "-e", "frame.time_epoch",
@@ -529,7 +534,7 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
         return;
     }
 
-    char buffer[4096];
+    char buffer[8192];
 
     uint32_t fileOffset = sizeof(PcapHeader);
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr && !StopFlag)
@@ -549,10 +554,11 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
         packet->FileOffset = fileOffset + sizeof(PacketHeader);
 
         fileOffset += sizeof(PacketHeader) + packet->CapLen;
-        packet->SourceLocation = IpUtil.GetIpLocation(packet->SourceIp);
-        packet->DestinationIp  = IpUtil.GetIpLocation(packet->DestinationIp);
+        packet->SourceLocation      = IpUtil.GetIpLocation(packet->SourceIp);
+        packet->DestinationLocation = IpUtil.GetIpLocation(packet->DestinationIp);
 
-        AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+        // AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+        ProcessPacket(packet);
     }
 }
 
@@ -619,4 +625,35 @@ void TsharkManager::AdapterFlowTrendMonitorThreadEntry(std::string adapterName)
         }
     }
     LOG_F(INFO, "adapterFlowTrendMonitorThreadEntry ENDED");
+}
+
+void TsharkManager::StorageThreadEntry()
+{
+    auto storageWork = [this]()
+    {
+        StoreLock.lock();
+        if (!PacketsToBeStore.empty())
+        {
+            if (Storage->StorePackets(PacketsToBeStore))
+                LOG_F(INFO, "packet stored");
+            PacketsToBeStore.clear();
+        }
+        StoreLock.unlock();
+    };
+    while (!StopFlag)
+    {
+        storageWork();
+        std::this_thread::sleep_for(milliseconds(100));
+    }
+    std::this_thread::sleep_for(seconds(1));
+    storageWork();
+    LOG_F(INFO, "All packets stored");
+}
+
+void TsharkManager::ProcessPacket(std::shared_ptr<Packet> packet)
+{
+    AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+    StoreLock.lock();
+    PacketsToBeStore.push_back(packet);
+    StoreLock.unlock();
 }

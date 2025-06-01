@@ -10,6 +10,7 @@
 #include "Ip2RegionUtil.h"
 #include "TsharkDataType.h"
 #include "ProcessUtil.h"
+#include "TsharkDatabase.hpp"
 
 #ifdef _WIN32
 #define POPEN _popen
@@ -39,7 +40,7 @@ public:
     void StopMonitorAdaptersFlowTrend();
     void GetAdaptersFlowTrendData(std::map<std::string, std::map<long, long>>& flowTrendData);
 
-    bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result);
+    bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result) const;
 
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
@@ -67,6 +68,13 @@ private:
     time_t                                    AdapterFlowTrendMonitorStartTime = 0;
 
     void AdapterFlowTrendMonitorThreadEntry(std::string adapterName);
+
+    std::vector<std::shared_ptr<Packet>> PacketsToBeStore;
+    std::mutex                           StoreLock;
+    std::shared_ptr<std::thread>         StorageThread;
+    std::shared_ptr<TsharkDatabase>      Storage;
+    void                                 StorageThreadEntry();
+    void                                 ProcessPacket(std::shared_ptr<Packet> packet);
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

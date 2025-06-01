@@ -38,11 +38,11 @@ public:
     {
         sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
         std::string insertSql = R"(
-        INSERT INTO t_packets (
-            frame_number, time, cap_len, len, src_mac, dst_mac, src_ip, src_location, src_port,
-            dst_ip, dst_location, dst_port, protocol, info, file_offset
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    )";
+            INSERT INTO t_packets (
+                frame_number, time, cap_len, len, src_mac, dst_mac, src_ip, src_location, src_port,
+                dst_ip, dst_location, dst_port, protocol, info, file_offset
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        )";
 
         sqlite3_stmt* stmt;
         if (sqlite3_prepare_v2(db, insertSql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
@@ -50,11 +50,10 @@ public:
             throw std::runtime_error("Failed to prepare insert statement");
         }
 
+        // 遍历列表并插入数据
         bool hasError = false;
         for (const auto& packet : packets)
         {
-            sqlite3_reset(stmt);
-            sqlite3_clear_bindings(stmt);
             sqlite3_bind_int(stmt, 1, packet->FrameNumber);
             sqlite3_bind_double(stmt, 2, std::stod(packet->Time));
             sqlite3_bind_int(stmt, 3, packet->CapLen);
@@ -69,28 +68,33 @@ public:
             sqlite3_bind_int(stmt, 12, packet->DestinationPort);
             sqlite3_bind_text(stmt, 13, packet->Protocol.c_str(), -1, SQLITE_STATIC);
             sqlite3_bind_text(stmt, 14, packet->Info.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_int64(stmt, 15, packet->FileOffset);
+            sqlite3_bind_int(stmt, 15, packet->FileOffset);
+
             if (sqlite3_step(stmt) != SQLITE_DONE)
             {
-                LOG_F(ERROR, "Failed to insert packet with frame number %d", packet->FrameNumber);
+                LOG_F(ERROR, "Failed to execute insert statement");
                 hasError = true;
                 break;
             }
-            sqlite3_reset(stmt);
 
-            if (hasError)
-            {
-                if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
-                {
-                    hasError = true;
-                }
-                sqlite3_finalize(stmt);
-            }
+            sqlite3_reset(stmt);
         }
+
+        if (!hasError)
+        {
+            if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+            {
+                hasError = true;
+            }
+
+            // 释放语句
+            sqlite3_finalize(stmt);
+        }
+
         return !hasError;
     }
 
-    bool QueryPackets(std::vector<std::shared_ptr<Packet>>& packetList)
+    bool QueryPackets(std::vector<std::shared_ptr<Packet>>& packetList) const
     {
         sqlite3_stmt *    stmt = nullptr, *countStmt = nullptr;
         const std::string sql  = "select * from t_packets";
@@ -144,7 +148,7 @@ public:
 private:
     sqlite3* db = nullptr;
 
-    bool CreatePacketTable()
+    bool CreatePacketTable() const
     {
         // 检查表是否存在，若不存在则创建
         /*
