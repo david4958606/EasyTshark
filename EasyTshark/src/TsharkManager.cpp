@@ -92,6 +92,16 @@ bool TsharkManager::ReadPcap(const std::string& path)
         packet->DestinationLocation = IpUtil.GetIpLocation(packet->DestinationIp);
 
         AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+
+        std::vector<std::shared_ptr<Packet>> pV;
+
+        for (auto& p : AllPackets)
+        {
+            pV.push_back(p.second);
+        }
+        Storage->StorePackets(pV);
+
+        return true;
     }
 
 

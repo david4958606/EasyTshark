@@ -18,7 +18,8 @@ int main(int argc, char* argv[])
     TsharkManager         tsharkManager(cwd.string());
 
     // GetDetailedJson(tsharkManager); 
-    OnlineCapture(tsharkManager, "WLAN");
+    // OnlineCapture(tsharkManager, "WLAN");
+    OfflineAnalysis(tsharkManager);
 }
 
 void InitIp2RegionUtil()
