@@ -17,6 +17,8 @@
 #define PCLOSE _pclose
 #endif
 
+class QueryCondition;
+
 class TsharkManager
 {
 public:
@@ -24,7 +26,7 @@ public:
     ~TsharkManager();
 
     // analyze pcap file
-    bool ReadPcap(const std::string& path);
+    bool AnalysisFile(const std::string& path);
 
     void PrintAllPackets() const;
 
@@ -41,6 +43,9 @@ public:
     void GetAdaptersFlowTrendData(std::map<std::string, std::map<long, long>>& flowTrendData);
 
     bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result) const;
+
+    // Database
+    void QueryPackets(QueryCondition& queryCondition, std::vector<std::shared_ptr<Packet>>& packets) const;
 
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);

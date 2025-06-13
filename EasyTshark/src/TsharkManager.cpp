@@ -35,7 +35,7 @@ TsharkManager::~TsharkManager()
     IpUtil.UnInit();
 }
 
-bool TsharkManager::ReadPcap(const std::string& path)
+bool TsharkManager::AnalysisFile(const std::string& path)
 {
     const std::vector<std::string> tsharkArgs = {
         TsharkPath,
@@ -410,6 +410,13 @@ bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& resu
     result = stringBuffer.GetString();
 
     return true;
+}
+
+void TsharkManager::QueryPackets(
+    QueryCondition&                       queryCondition,
+    std::vector<std::shared_ptr<Packet>>& packets) const
+{
+    Storage->QueryPackets(queryCondition, packets);
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)

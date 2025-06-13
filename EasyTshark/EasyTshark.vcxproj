@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\AdapterMonitorInfo.cpp" />
+    <ClCompile Include="src\HttpUtil.cpp" />
     <ClCompile Include="src\Ip2RegionUtil.cpp" />
     <ClCompile Include="src\ip2region\xdb_bench.cc" />
     <ClCompile Include="src\ip2region\xdb_search.cc" />
@@ -164,6 +165,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\MiscUtil.cpp" />
     <ClCompile Include="src\ProcessUtil.cpp" />
+    <ClCompile Include="src\QueryCondition.cpp" />
     <ClCompile Include="src\sqlite3\sqlite3.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
@@ -176,6 +178,7 @@
     <ClInclude Include="include\ip2region\xdb_search.h" />
     <ClInclude Include="include\loguru\loguru.hpp" />
     <ClInclude Include="include\main.h" />
+    <ClInclude Include="include\PacketController.hpp" />
     <ClInclude Include="include\rapidjson\allocators.h" />
     <ClInclude Include="include\rapidjson\cursorstreamwrapper.h" />
     <ClInclude Include="include\rapidjson\document.h" />
@@ -222,10 +225,13 @@
     <ClInclude Include="include\Ip2RegionUtil.h" />
     <ClInclude Include="include\TsharkDatabase.hpp" />
     <ClInclude Include="include\TsharkDataType.h" />
+    <ClInclude Include="include\TsharkError.hpp" />
     <ClInclude Include="include\TsharkManager.h" />
     <ClInclude Include="include\ProcessUtil.h" />
     <ClInclude Include="include\AdapterMonitorInfo.h" />
     <ClInclude Include="include\MiscUtil.h" />
+    <ClInclude Include="include\HttpUtil.h" />
+    <ClInclude Include="include\QueryCondition.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb" />

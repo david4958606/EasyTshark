@@ -7,6 +7,9 @@
 #include "loguru.hpp"
 #include "sqlite3.h"
 #include "TsharkDataType.h"
+#include "QueryCondition.h"
+
+class QueryCondition;
 
 class TsharkDatabase
 {
@@ -94,16 +97,23 @@ public:
         return !hasError;
     }
 
-    bool QueryPackets(std::vector<std::shared_ptr<Packet>>& packetList) const
+    bool QueryPackets(QueryCondition&                       queryCondition,
+                      std::vector<std::shared_ptr<Packet>>& packetList) const
     {
         sqlite3_stmt *    stmt = nullptr, *countStmt = nullptr;
-        const std::string sql  = "select * from t_packets";
+        const std::string sql  =
+            "select * from t_packets where (src_ip==? or dst_ip==?) and (src_port==? or dst_port==?)";
 
         if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
         {
             LOG_F(ERROR, "Failed to prepare statement: ");
             return false;
         }
+
+        sqlite3_bind_text(stmt, 1, queryCondition.Ip.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, queryCondition.Ip.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 3, queryCondition.Port);
+        sqlite3_bind_int(stmt, 4, queryCondition.Port);
 
         while (sqlite3_step(stmt) == SQLITE_ROW)
         {

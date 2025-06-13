@@ -54,6 +54,12 @@
     <ClCompile Include="src\MiscUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\HttpUtil.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\QueryCondition.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\rapidjson\allocators.h">
@@ -219,6 +225,18 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\TsharkDatabase.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\HttpUtil.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PacketController.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\TsharkError.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\QueryCondition.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

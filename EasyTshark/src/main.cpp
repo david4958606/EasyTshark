@@ -4,9 +4,11 @@
 
 #include "main.h"
 
+#include "httplib.h"
 #include "TsharkManager.h"
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
+#include "PacketController.hpp"
 
 
 int main(int argc, char* argv[])
@@ -15,11 +17,14 @@ int main(int argc, char* argv[])
 
     InitIp2RegionUtil();
     std::filesystem::path cwd = std::filesystem::current_path();
-    TsharkManager         tsharkManager(cwd.string());
+    // TsharkManager         tsharkManager(cwd.string());
+    gPtrTsharkManager = std::make_shared<TsharkManager>(cwd.string());
 
     // GetDetailedJson(tsharkManager); 
     // OnlineCapture(tsharkManager, "WLAN");
-    OfflineAnalysis(tsharkManager);
+    // OfflineAnalysis(tsharkManager);
+    gPtrTsharkManager->AnalysisFile("resource\\capture.pcap");
+    SetUpServer();
 }
 
 void InitIp2RegionUtil()
@@ -38,7 +43,7 @@ void GetDetailedJson(TsharkManager& tsharkManager)
     std::string pcapPath;
     std::cout << "Please enter PCAP file path: ";
     std::cin >> pcapPath;
-    tsharkManager.ReadPcap(pcapPath);
+    tsharkManager.AnalysisFile(pcapPath);
     tsharkManager.PrintAllPackets();
 
     uint32_t    frameNumber;
@@ -69,6 +74,37 @@ void OnlineCapture(TsharkManager& tsharkManager, const std::string& adapterName)
 
 void OfflineAnalysis(TsharkManager& tsharkManager)
 {
-    tsharkManager.ReadPcap("resource\\capture.pcap");
+    tsharkManager.AnalysisFile("resource\\capture.pcap");
     tsharkManager.PrintAllPackets();
+}
+
+void SetUpServer()
+{
+    httplib::Server svr;
+    svr.set_pre_routing_handler([](const httplib::Request& req, httplib::Response& /*res*/)
+    {
+        BeforeRequest(req);
+        return httplib::Server::HandlerResponse::Unhandled;
+    });
+
+    svr.set_post_routing_handler([](const httplib::Request& req, const httplib::Response& res)
+    {
+        AfterRequest(req, res);
+    });
+
+
+    PacketController packetController(svr, gPtrTsharkManager);
+    packetController.RegisterRoute();
+
+    svr.listen("127.0.0.1", 8080);
+}
+
+void BeforeRequest(const httplib::Request& req)
+{
+    LOG_F(INFO, "[Before] URL: %s | IP: %s", req.path.c_str(), req.remote_addr.c_str());
+}
+
+void AfterRequest(const httplib::Request& req, const httplib::Response& res)
+{
+    LOG_F(INFO, "[After]  Status Code: %d", res.status);
 }
