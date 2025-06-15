@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "loguru.hpp"
+#include "PacketSQL.hpp"
 #include "sqlite3.h"
 #include "TsharkDataType.h"
 #include "QueryCondition.h"
@@ -20,7 +21,7 @@ public:
         remove(dbName.c_str());
 
         // 打开数据库连接
-        if (sqlite3_open(dbName.c_str(), &db) != SQLITE_OK)
+        if (sqlite3_open(dbName.c_str(), &Db) != SQLITE_OK)
         {
             throw std::runtime_error("Failed to open database: " + dbName);
         }
@@ -31,15 +32,15 @@ public:
     // 析构函数，关闭数据库连接
     ~TsharkDatabase()
     {
-        if (db)
+        if (Db)
         {
-            sqlite3_close(db);
+            sqlite3_close(Db);
         }
     }
 
     bool StorePackets(const std::vector<std::shared_ptr<Packet>>& packets) const
     {
-        sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+        sqlite3_exec(Db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
         std::string insertSql = R"(
             INSERT INTO t_packets (
                 frame_number, time, cap_len, len, src_mac, dst_mac, src_ip, src_location, src_port,
@@ -48,7 +49,7 @@ public:
         )";
 
         sqlite3_stmt* stmt;
-        if (sqlite3_prepare_v2(db, insertSql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        if (sqlite3_prepare_v2(Db, insertSql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
         {
             throw std::runtime_error("Failed to prepare insert statement");
         }
@@ -85,7 +86,7 @@ public:
 
         if (!hasError)
         {
-            if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+            if (sqlite3_exec(Db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
             {
                 hasError = true;
             }
@@ -101,10 +102,10 @@ public:
                       std::vector<std::shared_ptr<Packet>>& packetList) const
     {
         sqlite3_stmt *    stmt = nullptr, *countStmt = nullptr;
-        const std::string sql  =
-            "select * from t_packets where (src_ip==? or dst_ip==?) and (src_port==? or dst_port==?)";
+        const std::string sql  = PacketSql::BuildPacketQuerySql(queryCondition);
 
-        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
         {
             LOG_F(ERROR, "Failed to prepare statement: ");
             return false;
@@ -156,7 +157,7 @@ public:
     }
 
 private:
-    sqlite3* db = nullptr;
+    sqlite3* Db = nullptr;
 
     bool CreatePacketTable() const
     {
@@ -200,7 +201,7 @@ private:
             );
         )";
 
-        if (sqlite3_exec(db, createTableSql.c_str(), nullptr, nullptr, nullptr) != SQLITE_OK)
+        if (sqlite3_exec(Db, createTableSql.c_str(), nullptr, nullptr, nullptr) != SQLITE_OK)
         {
             LOG_F(ERROR, "Failed to create table t_packets");
             return false;

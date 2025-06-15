@@ -239,6 +239,12 @@
     <ClInclude Include="include\QueryCondition.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="include\BaseController.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PacketSQL.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb">
