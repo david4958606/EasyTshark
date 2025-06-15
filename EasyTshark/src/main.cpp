@@ -20,10 +20,10 @@ int main(int argc, char* argv[])
     // TsharkManager         tsharkManager(cwd.string());
     gPtrTsharkManager = std::make_shared<TsharkManager>(cwd.string());
 
-    // GetDetailedJson(tsharkManager); 
-    // OnlineCapture(tsharkManager, "WLAN");
-    // OfflineAnalysis(tsharkManager);
-    gPtrTsharkManager->AnalysisFile("resource\\capture.pcap");
+    // OnlineCapture(gPtrTsharkManager, "WLAN");
+    OfflineAnalysis(gPtrTsharkManager);
+
+
     SetUpServer();
 }
 
@@ -54,9 +54,9 @@ void GetDetailedJson(TsharkManager& tsharkManager)
     std::cout << result << std::endl;
 }
 
-void OnlineCapture(TsharkManager& tsharkManager, const std::string& adapterName)
+void OnlineCapture(const std::shared_ptr<TsharkManager>& gPtrTsharkManager, const std::string& adapterName)
 {
-    tsharkManager.StartCapture(adapterName);
+    gPtrTsharkManager->StartCapture(adapterName);
 
     std::string input;
     while (true)
@@ -65,17 +65,17 @@ void OnlineCapture(TsharkManager& tsharkManager, const std::string& adapterName)
         std::cin >> input;
         if (input == "q" or input == "Q")
         {
-            tsharkManager.StopCapture();
+            gPtrTsharkManager->StopCapture();
             break;
         }
     }
-    tsharkManager.PrintAllPackets();
+    // gPtrTsharkManager->PrintAllPackets();
 }
 
-void OfflineAnalysis(TsharkManager& tsharkManager)
+void OfflineAnalysis(const std::shared_ptr<TsharkManager>& gPtrTsharkManager)
 {
-    tsharkManager.AnalysisFile("resource\\capture.pcap");
-    tsharkManager.PrintAllPackets();
+    gPtrTsharkManager->AnalysisFile("resource\\capture.pcap");
+    // gPtrTsharkManager->PrintAllPackets();
 }
 
 void SetUpServer()

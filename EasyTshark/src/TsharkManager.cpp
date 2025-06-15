@@ -74,8 +74,11 @@ bool TsharkManager::AnalysisFile(const std::string& path)
         return false;
     }
 
-    char buffer[4096];
+    // Start Storage
+    StopFlag      = false;
+    StorageThread = std::make_shared<std::thread>(&TsharkManager::StorageThreadEntry, this);
 
+    char     buffer[4096];
     uint32_t fileOffset = sizeof(PcapHeader); // point to the first packet
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
     {
@@ -91,17 +94,8 @@ bool TsharkManager::AnalysisFile(const std::string& path)
         packet->SourceLocation      = IpUtil.GetIpLocation(packet->SourceIp);
         packet->DestinationLocation = IpUtil.GetIpLocation(packet->DestinationIp);
 
-        AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
-
-        std::vector<std::shared_ptr<Packet>> pV;
-
-        for (auto& p : AllPackets)
-        {
-            pV.push_back(p.second);
-        }
-        Storage->StorePackets(pV);
-
-        return true;
+        // AllPackets.insert(std::make_pair<>(packet->FrameNumber, packet));
+        ProcessPacket(packet);
     }
 
 
@@ -109,6 +103,10 @@ bool TsharkManager::AnalysisFile(const std::string& path)
     {
         std::cerr << "Failed to close pipe." << std::endl;
     }
+
+    StopFlag = true;
+    StorageThread->join();
+    StorageThread.reset();
     CurrentFilePath = path;
     return true;
 }
