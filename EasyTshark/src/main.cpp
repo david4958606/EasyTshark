@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     gPtrTsharkManager = std::make_shared<TsharkManager>(cwd.string());
 
     // OnlineCapture(gPtrTsharkManager, "WLAN");
-    OfflineAnalysis(gPtrTsharkManager);
+    // OfflineAnalysis(gPtrTsharkManager);
 
 
     SetUpServer();

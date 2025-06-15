@@ -104,4 +104,10 @@ namespace MiscUtil
         { "Hypertext Transfer Protocol", "超文本传输协议HTTP" },
         { "Transport Layer Security", "传输层安全协议TLS" }
     };
+
+    inline bool FileExists(const char* filePath)
+    {
+        const std::ifstream file(filePath);
+        return file.good();
+    }
 }
