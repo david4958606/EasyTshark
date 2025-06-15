@@ -22,6 +22,26 @@ struct Packet
     std::string Protocol;
     std::string Info;
     uint32_t    FileOffset;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const
+    {
+        rapidjson::Value pktObj(rapidjson::kObjectType);
+        obj.AddMember("frame_number", FrameNumber, allocator);
+        obj.AddMember("timestamp", rapidjson::Value(Time.c_str(), allocator), allocator);
+        obj.AddMember("src_mac", rapidjson::Value(SourceMac.c_str(), allocator), allocator);
+        obj.AddMember("dst_mac", rapidjson::Value(DestinationMac.c_str(), allocator), allocator);
+        obj.AddMember("src_ip", rapidjson::Value(SourceIp.c_str(), allocator), allocator);
+        obj.AddMember("src_location", rapidjson::Value(SourceLocation.c_str(), allocator), allocator);
+        obj.AddMember("src_port", SourcePort, allocator);
+        obj.AddMember("dst_ip", rapidjson::Value(DestinationIp.c_str(), allocator), allocator);
+        obj.AddMember("dst_location", rapidjson::Value(DestinationLocation.c_str(), allocator), allocator);
+        obj.AddMember("dst_port", DestinationPort, allocator);
+        obj.AddMember("len", Len, allocator);
+        obj.AddMember("cap_len", CapLen, allocator);
+        obj.AddMember("protocol", rapidjson::Value(Protocol.c_str(), allocator), allocator);
+        obj.AddMember("info", rapidjson::Value(Info.c_str(), allocator), allocator);
+        obj.AddMember("file_offset", FileOffset, allocator);
+    }
 };
 
 
