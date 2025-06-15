@@ -75,7 +75,7 @@ void OnlineCapture(const std::shared_ptr<TsharkManager>& gPtrTsharkManager, cons
 void OfflineAnalysis(const std::shared_ptr<TsharkManager>& gPtrTsharkManager)
 {
     gPtrTsharkManager->AnalysisFile("resource\\capture.pcap");
-    gPtrTsharkManager->PrintAllPackets();
+    // gPtrTsharkManager->PrintAllPackets();
 }
 
 void SetUpServer()

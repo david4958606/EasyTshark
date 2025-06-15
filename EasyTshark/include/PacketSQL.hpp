@@ -46,6 +46,26 @@ namespace PacketSql
             conditionList.push_back(buf);
         }
 
+        if (!condition.Mac.empty())
+        {
+            char buf[100] = { 0 };
+            snprintf(buf,
+                     sizeof(buf),
+                     "src_mac='%s' or dst_mac='%s'",
+                     condition.Mac.c_str(), condition.Mac.c_str());
+            conditionList.push_back(buf);
+        }
+
+        if (!condition.Location.empty())
+        {
+            char buf[100] = { 0 };
+            snprintf(buf,
+                     sizeof(buf),
+                     "src_location='%s' or dst_location='%s'",
+                     condition.Location.c_str(), condition.Location.c_str());
+            conditionList.push_back(buf);
+        }
+
         if (!conditionList.empty())
         {
             ss << " WHERE ";

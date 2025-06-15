@@ -152,6 +152,16 @@ protected:
             {
                 queryCondition.Proto = doc["proto"].GetString();
             }
+
+            if (doc.HasMember("mac") && doc["mac"].IsString())
+            {
+                queryCondition.Mac = doc["mac"].GetString();
+            }
+
+            if (doc.HasMember("location") && doc["location"].IsString())
+            {
+                queryCondition.Location = doc["location"].GetString();
+            }
         }
         catch (std::exception&)
         {
