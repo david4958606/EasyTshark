@@ -47,6 +47,8 @@ public:
     // Database
     void QueryPackets(QueryCondition& queryCondition, std::vector<std::shared_ptr<Packet>>& packets) const;
 
+    bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;
+
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 

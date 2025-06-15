@@ -37,6 +37,12 @@ TsharkManager::~TsharkManager()
 
 bool TsharkManager::AnalysisFile(const std::string& path)
 {
+    CurrentFilePath = MiscUtil::GetPcapNameByCurrentTimestamp();
+    if (!ConvertToPcap(path, CurrentFilePath))
+    {
+        LOG_F(ERROR, "convert to pcap failed");
+        return false;
+    }
     const std::vector<std::string> tsharkArgs = {
         TsharkPath,
         "-r", path,
@@ -415,6 +421,20 @@ void TsharkManager::QueryPackets(
     std::vector<std::shared_ptr<Packet>>& packets) const
 {
     Storage->QueryPackets(queryCondition, packets);
+}
+
+bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const
+{
+    std::string command = EditcapPath + " -F pcap " + inputFile + " " + outputFile;
+
+    if (!ProcessUtil::Exec(command))
+    {
+        LOG_F(ERROR, "Failed to convert to pcap format, command: %s", command.c_str());
+        return false;
+    }
+
+    LOG_F(INFO, "Successfully converted %s to %s in pcap format", inputFile.c_str(), outputFile.c_str());
+    return true;
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)
