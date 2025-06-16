@@ -23,6 +23,7 @@
 
 TsharkManager::TsharkManager(const std::string& workDir): StopFlag(false)
 {
+    this->WorkDir             = workDir;
     this->TsharkPath          = "\"C:\\Program Files\\Wireshark\\tshark.exe\"";
     const std::string xdbPath = workDir + "resource\\ip2region.xdb";
     this->EditcapPath         = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
@@ -37,6 +38,13 @@ TsharkManager::~TsharkManager()
 
 bool TsharkManager::AnalysisFile(const std::string& path)
 {
+    Reset();
+    CurrentFilePath = MiscUtil::GetPcapNameByCurrentTimestamp();
+    if (!ConvertToPcap(path, CurrentFilePath))
+    {
+        LOG_F(ERROR, "convert to pcap failed");
+        return false;
+    }
     const std::vector<std::string> tsharkArgs = {
         TsharkPath,
         "-r", path,
@@ -248,6 +256,7 @@ std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters() const
 
 bool TsharkManager::StartCapture(const std::string& adapterName)
 {
+    Reset();
     LOG_F(INFO, "Starting Capture @ %s", adapterName.c_str());
     StopFlag          = false;
     StorageThread     = std::make_shared<std::thread>(&TsharkManager::StorageThreadEntry, this);
@@ -270,6 +279,7 @@ bool TsharkManager::StopCapture()
 
 void TsharkManager::StartMonitorAdaptersFlowTrend()
 {
+    Reset();
     std::unique_lock lock(AdapterFlowTrendMapLock);
 
     AdapterFlowTrendMonitorStartTime = time(nullptr);
@@ -415,6 +425,66 @@ void TsharkManager::QueryPackets(
     std::vector<std::shared_ptr<Packet>>& packets) const
 {
     Storage->QueryPackets(queryCondition, packets);
+}
+
+bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const
+{
+    const std::string command = EditcapPath + " -F pcap " + inputFile + " " + outputFile;
+
+    if (!ProcessUtil::Exec(command))
+    {
+        LOG_F(ERROR, "Failed to convert to pcap format, command: %s", command.c_str());
+        return false;
+    }
+
+    LOG_F(INFO, "Successfully converted %s to %s in pcap format", inputFile.c_str(), outputFile.c_str());
+    return true;
+}
+
+WorkStatus TsharkManager::GetWorkStatus()
+{
+    std::unique_lock<std::recursive_mutex> lock(WorkStatusLock);
+    return WorkStatus;
+}
+
+void TsharkManager::Reset()
+{
+    LOG_F(INFO, "reset called");
+    if (WorkStatus == STATUS_CAPTURING)
+    {
+        StopCapture();
+    }
+    else if (WorkStatus == STATUS_MONITORING)
+    {
+        StopMonitorAdaptersFlowTrend();
+    }
+
+    WorkStatus       = STATUS_IDLE;
+    CaptureTsharkPid = 0;
+    StopFlag         = true;
+
+    AllPackets.clear();
+    PacketsToBeStore.clear();
+
+    if (CaptureWorkThread)
+    {
+        CaptureWorkThread->join();
+        CaptureWorkThread.reset();
+    }
+
+    if (StorageThread)
+    {
+        StorageThread->join();
+        StorageThread.reset();
+    }
+
+    remove(CurrentFilePath.c_str());
+    CurrentFilePath = "";
+
+    Storage.reset();
+    std::string dbFullPath = this->WorkDir + "/tshark.db";
+    remove(dbFullPath.c_str());
+    Storage = std::make_shared<TsharkDatabase>(dbFullPath);
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)

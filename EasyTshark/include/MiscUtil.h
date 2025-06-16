@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <filesystem>
 #include <string>
 #include <fstream>
 #include <map>
@@ -104,4 +105,48 @@ namespace MiscUtil
         { "Hypertext Transfer Protocol", "超文本传输协议HTTP" },
         { "Transport Layer Security", "传输层安全协议TLS" }
     };
+
+    inline bool FileExists(const char* filePath)
+    {
+        const std::ifstream file(filePath);
+        return file.good();
+    }
+
+    inline void CreateDirectory(const std::string& dir)
+    {
+        if (!std::filesystem::exists(dir))
+        {
+            std::filesystem::create_directory(dir);
+        }
+    }
+
+    inline std::string GetDefaultDataDir()
+    {
+        static std::string dir = "";
+        if (!dir.empty())
+        {
+            return dir;
+        }
+
+#ifdef _WIN32
+        const std::filesystem::path cwd = std::filesystem::current_path();
+        dir                             = cwd.string() + "\\resource\\";
+#else
+        dir = std::string(std::getenv("HOME")) + "/easytshark/";
+#endif
+        CreateDirectory(dir);
+        return dir;
+    }
+
+    inline std::string GetPcapNameByCurrentTimestamp(bool isFullPath = true)
+    {
+        std::time_t now       = std::time(nullptr);
+        std::tm*    localTime = std::localtime(&now);
+
+        // 格式化文件名
+        char buffer[64];
+        std::strftime(buffer, sizeof(buffer), "easytshark_%Y-%m-%d_%H-%M-%S.pcap", localTime);
+
+        return isFullPath ? GetDefaultDataDir() + std::string(buffer) : std::string(buffer);
+    }
 }
