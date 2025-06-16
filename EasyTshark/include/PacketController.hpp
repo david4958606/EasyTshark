@@ -58,6 +58,11 @@ public:
                 return SendErrorResponse(res, ERROR_PARAMETER_WRONG);
             }
 
+            if (__TsharkManager->GetWorkStatus() != STATUS_IDLE)
+            {
+                return SendErrorResponse(res, ERROR_STATUS_WRONG);
+            }
+
             rapidjson::Document doc;
             if (doc.Parse(req.body.c_str()).HasParseError())
             {

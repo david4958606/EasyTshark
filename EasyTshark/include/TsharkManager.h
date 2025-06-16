@@ -11,13 +11,20 @@
 #include "TsharkDataType.h"
 #include "ProcessUtil.h"
 #include "TsharkDatabase.hpp"
+#include "QueryCondition.h"
 
 #ifdef _WIN32
 #define POPEN _popen
 #define PCLOSE _pclose
 #endif
 
-class QueryCondition;
+enum WorkStatus
+{
+    STATUS_IDLE          = 0,
+    STATUS_ANALYSIS_FILE = 1,
+    STATUS_CAPTURING     = 2,
+    STATUS_MONITORING    = 3
+};
 
 class TsharkManager
 {
@@ -27,15 +34,12 @@ public:
 
     // analyze pcap file
     bool AnalysisFile(const std::string& path);
-
     void PrintAllPackets() const;
-
     bool ReadPacketHex(uint32_t frameNumber, std::vector<unsigned char>& data);
 
     std::vector<AdapterInfo> GetNetworkAdapters() const;
 
     bool StartCapture(const std::string& adapterName);
-
     bool StopCapture();
 
     void StartMonitorAdaptersFlowTrend();
@@ -49,6 +53,9 @@ public:
 
     bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;
 
+    WorkStatus GetWorkStatus();
+    void       Reset();
+
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 
@@ -57,6 +64,7 @@ private:
     std::string TsharkPath;
     std::string CurrentFilePath;
     std::string EditcapPath;
+    std::string WorkDir;
 
     Ip2RegionUtil& IpUtil = Ip2RegionUtil::Instance();
 
@@ -82,6 +90,9 @@ private:
     std::shared_ptr<TsharkDatabase>      Storage;
     void                                 StorageThreadEntry();
     void                                 ProcessPacket(std::shared_ptr<Packet> packet);
+
+    WorkStatus           WorkStatus = STATUS_IDLE;
+    std::recursive_mutex WorkStatusLock;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;
