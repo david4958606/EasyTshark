@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -20,10 +21,22 @@ namespace PacketSql
         if (!condition.Ip.empty())
         {
             char buf[100] = { 0 };
-            snprintf(buf,
-                     sizeof(buf),
-                     "src_ip='%s' or dst_ip='%s'",
-                     condition.Ip.c_str(), condition.Ip.c_str());
+            if (condition.Ip.find('*') != std::string::npos)
+            {
+                std::string ipPattern = condition.Ip;
+                std::ranges::replace(ipPattern, '*', '%');
+                snprintf(buf,
+                         sizeof(buf),
+                         "src_ip LIKE '%s' or dst_ip LIKE '%s'",
+                         condition.Ip.c_str(), condition.Ip.c_str());
+            }
+            else
+            {
+                snprintf(buf,
+                         sizeof(buf),
+                         "src_ip='%s' or dst_ip='%s'",
+                         condition.Ip.c_str(), condition.Ip.c_str());
+            }
         }
 
         if (condition.Port != 0)
