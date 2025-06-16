@@ -9,7 +9,7 @@
 
 namespace PacketSql
 {
-    inline std::string BuildPacketQuerySql(QueryCondition& condition)
+    inline std::string BuildPacketQuerySql(const QueryCondition& condition)
     {
         std::string       sql;
         std::stringstream ss;
@@ -28,7 +28,7 @@ namespace PacketSql
                 snprintf(buf,
                          sizeof(buf),
                          "src_ip LIKE '%s' or dst_ip LIKE '%s'",
-                         condition.Ip.c_str(), condition.Ip.c_str());
+                         ipPattern.c_str(), ipPattern.c_str());
             }
             else
             {
@@ -37,6 +37,7 @@ namespace PacketSql
                          "src_ip='%s' or dst_ip='%s'",
                          condition.Ip.c_str(), condition.Ip.c_str());
             }
+            conditionList.push_back(buf);
         }
 
         if (condition.Port != 0)
