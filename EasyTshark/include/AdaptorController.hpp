@@ -178,6 +178,33 @@ public:
         }
     }
 
+    void GetNetworkAdapters(const httplib::Request& req, httplib::Response& res) const
+    {
+        try
+        {
+            std::vector<AdapterInfo>            adapterList = __TsharkManager->GetNetworkAdapters();
+            rapidjson::Document                 resDoc;
+            rapidjson::Document::AllocatorType& allocator = resDoc.GetAllocator();
+            resDoc.SetObject();
+            for (const auto& adapter : adapterList)
+            {
+                std::string displayName = adapter.Name;
+                if (!adapter.Remark.empty())
+                {
+                    displayName += " (" + adapter.Remark + ")";
+                }
+                std::string idStr = std::to_string(adapter.Id);
+                resDoc.AddMember(rapidjson::Value(idStr.c_str(), allocator),
+                                 rapidjson::Value(displayName.c_str(), allocator), allocator);
+            }
+            SendJsonResponse(res, resDoc);
+        }
+        catch (const std::exception& e)
+        {
+            SendErrorResponse(res, ERROR_INTERNAL_WRONG);
+        }
+    }
+
     void RegisterRoute() override
     {
         __Server.Get("/api/getWorkStatus",
@@ -214,6 +241,12 @@ public:
                      [this](const httplib::Request& req, httplib::Response& res)
                      {
                          GetAdaptersFlowTrendData(req, res);
+                     });
+
+        __Server.Get("/api/getNetworkAdapters",
+                     [this](const httplib::Request& req, httplib::Response& res)
+                     {
+                         GetNetworkAdapters(req, res);
                      });
     }
 };
