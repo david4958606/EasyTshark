@@ -103,6 +103,32 @@ protected:
         res.set_content(buffer.GetString(), "application/json");
     }
 
+    static void SendJsonResponse(httplib::Response& res, rapidjson::Document& dataDoc)
+    {
+        /**
+         * 返回数据格式：
+         * {
+         *     "code": 0,
+         *     "msg": "操作成功",
+         *     "data" [] / {}
+         * }
+         */
+        rapidjson::Document                 resDoc;
+        rapidjson::Document::AllocatorType& allocator = resDoc.GetAllocator();
+        resDoc.SetObject();
+        resDoc.AddMember("code", ERROR_SUCCESS, allocator);
+        resDoc.AddMember("msg",
+                         rapidjson::Value(TsharkError::GetErrorMsg(ERROR_SUCCESS).c_str(), allocator),
+                         allocator);
+        resDoc.AddMember("data", dataDoc, allocator);
+
+        rapidjson::StringBuffer                    buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        resDoc.Accept(writer);
+
+        res.set_content(buffer.GetString(), "application/json");
+    }
+
     static void SendErrorResponse(httplib::Response& res, const int errorCode)
     {
         rapidjson::Document                 resDoc;

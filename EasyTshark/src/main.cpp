@@ -4,6 +4,7 @@
 
 #include "main.h"
 
+#include "AdaptorController.hpp"
 #include "httplib.h"
 #include "TsharkManager.h"
 #include "Ip2RegionUtil.h"
@@ -17,8 +18,7 @@ int main(int argc, char* argv[])
 
     InitIp2RegionUtil();
     std::filesystem::path cwd = std::filesystem::current_path();
-    // TsharkManager         tsharkManager(cwd.string());
-    gPtrTsharkManager = std::make_shared<TsharkManager>(cwd.string());
+    gPtrTsharkManager         = std::make_shared<TsharkManager>(cwd.string());
 
     // OnlineCapture(gPtrTsharkManager, "WLAN");
     // OfflineAnalysis(gPtrTsharkManager);
@@ -95,6 +95,9 @@ void SetUpServer()
 
     PacketController packetController(svr, gPtrTsharkManager);
     packetController.RegisterRoute();
+
+    AdaptorController adaptorController(svr, gPtrTsharkManager);
+    adaptorController.RegisterRoute();
 
     svr.listen("127.0.0.1", 8080);
 }

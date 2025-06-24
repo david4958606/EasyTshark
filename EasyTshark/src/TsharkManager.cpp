@@ -257,6 +257,10 @@ std::vector<AdapterInfo> TsharkManager::GetNetworkAdapters() const
 bool TsharkManager::StartCapture(const std::string& adapterName)
 {
     Reset();
+    {
+        std::unique_lock<std::recursive_mutex> lock(WorkStatusLock);
+        WorkStatus = STATUS_CAPTURING;
+    }
     LOG_F(INFO, "Starting Capture @ %s", adapterName.c_str());
     StopFlag          = false;
     StorageThread     = std::make_shared<std::thread>(&TsharkManager::StorageThreadEntry, this);
@@ -274,6 +278,11 @@ bool TsharkManager::StopCapture()
     CaptureWorkThread.reset();
     StorageThread->join();
     StorageThread.reset();
+    {
+        std::unique_lock<std::recursive_mutex> lock(WorkStatusLock);
+        WorkStatus = STATUS_IDLE;
+        LOG_F(INFO, "WorkStatus: STATUS_IDLE");
+    }
     return true;
 }
 
