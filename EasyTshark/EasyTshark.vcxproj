@@ -173,6 +173,7 @@
     <ClCompile Include="src\TsharkManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\AdaptorController.hpp" />
     <ClInclude Include="include\BaseController.hpp" />
     <ClInclude Include="include\httplib\httplib.h" />
     <ClInclude Include="include\ip2region\xdb_bench.h" />
