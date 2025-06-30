@@ -59,6 +59,8 @@ bool TsharkManager::AnalysisFile(const std::string& path)
         "-e", "ipv6.src",
         "-e", "ip.dst",
         "-e", "ipv6.dst",
+        "-e", "ip.proto",
+        "-e", "ipv6.nxt",
         "-e", "tcp.srcport",
         "-e", "udp.srcport",
         "-e", "tcp.dstport",
@@ -69,7 +71,7 @@ bool TsharkManager::AnalysisFile(const std::string& path)
 
     std::string command;
 
-    for (const auto arg : tsharkArgs)
+    for (const auto& arg : tsharkArgs)
     {
         command += arg;
         command += " ";
@@ -130,7 +132,7 @@ void TsharkManager::PrintAllPackets() const
         pktObj.SetObject();
 
         pktObj.AddMember("frame_number", packet->FrameNumber, allocator);
-        pktObj.AddMember("timestamp", rapidjson::Value(packet->Time.c_str(), allocator), allocator);
+        pktObj.AddMember("timestamp", packet->Time, allocator);
         pktObj.AddMember("src_mac", rapidjson::Value(packet->SourceMac.c_str(), allocator), allocator);
         pktObj.AddMember("dst_mac", rapidjson::Value(packet->DestinationMac.c_str(), allocator), allocator);
         pktObj.AddMember("src_ip", rapidjson::Value(packet->SourceIp.c_str(), allocator), allocator);
@@ -496,6 +498,22 @@ void TsharkManager::Reset()
     Storage = std::make_shared<TsharkDatabase>(dbFullPath);
 }
 
+void TsharkManager::PrintAllSessions() const
+{
+    for (const auto& val : SessionMap | std::views::values)
+    {
+        rapidjson::Document doc(rapidjson::kObjectType);
+        val->ToJsonObj(doc, doc.GetAllocator());
+
+        rapidjson::StringBuffer stringBuffer;
+        rapidjson::PrettyWriter writer(stringBuffer);
+        doc.Accept(writer);
+
+        // LOG_F(INFO, "Session JSON: %s", stringBuffer.GetString());
+        std::cout << stringBuffer.GetString() << std::endl;
+    }
+}
+
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)
 {
     if (line.back() == '\n')
@@ -515,41 +533,55 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
     }
     fields.push_back(line.substr(start));
 
-    // 00 int         FrameNumber;
-    // 01 std::string Time;
-    // 02 std::string SourceMac;
-    // 03 std::string DestinationMac;
-    // 04 uint32_t    CapLen;
-    // 05 uint32_t    Len;
-    // 06 std::string SourceIp;
-    // 07 std::string SourceLocation;
-    // 08 uint16_t    SourcePort;
-    // 09 std::string DestinationIp;
-    // 10 std::string DestinationLocation;
-    // 11 uint16_t    DestinationPort;
-    // 12 std::string Protocol;
-    // 13 std::string Info;
-    // 14 uint32_t    FileOffset;
-    if (fields.size() >= 16)
+    // 00 "frame.number",
+    // 01 "frame.time_epoch",
+    // 02 "frame.len",
+    // 03 "frame.cap_len",
+    // 04 "eth.src",
+    // 05 "eth.dst",
+    // 06 "ip.src",
+    // 07 "ipv6.src",
+    // 08 "ip.dst",
+    // 09 "ipv6.dst",
+    // 10 "ip.proto",
+    // 11 "ipv6.nxt",
+    // 12 "tcp.srcport",
+    // 13 "udp.srcport",
+    // 14 "tcp.dstport",
+    // 15 "udp.dstport",
+    // 16 "_ws.col.Protocol",
+    // 17 "_ws.col.Info",
+    if (fields.size() >= 18)
     {
         packet->FrameNumber    = std::stoi(fields[0]);
-        packet->Time           = ConvertTimeStamp(fields[1]);
+        packet->Time           = std::stod(fields[1]);
         packet->Len            = std::stoi(fields[2]);
         packet->CapLen         = std::stoi(fields[3]);
         packet->SourceMac      = fields[4];
         packet->DestinationMac = fields[5];
         packet->SourceIp       = fields[6].empty() ? fields[7] : fields[6];
         packet->DestinationIp  = fields[8].empty() ? fields[9] : fields[8];
+
         if (!fields[10].empty() || !fields[11].empty())
         {
-            packet->SourcePort = std::stoi(fields[10].empty() ? fields[11] : fields[10]);
+            const uint8_t transProtoNumber = std::stoi(fields[10].empty() ? fields[11] : fields[10]);
+            if (IP_PROTO_MAP.contains(transProtoNumber))
+            {
+                packet->TransProtocol = IP_PROTO_MAP.at(transProtoNumber);
+            }
         }
+
         if (!fields[12].empty() || !fields[13].empty())
         {
-            packet->DestinationPort = std::stoi(fields[12].empty() ? fields[13] : fields[12]);
+            packet->SourcePort = std::stoi(fields[12].empty() ? fields[13] : fields[12]);
         }
-        packet->Protocol = fields[14];
-        packet->Info     = fields[15];
+        if (!fields[14].empty() || !fields[15].empty())
+        {
+            packet->DestinationPort = std::stoi(fields[14].empty() ? fields[15] : fields[14]);
+        }
+
+        packet->Protocol = fields[16];
+        packet->Info     = fields[17];
 
         return true;
     }
@@ -558,36 +590,39 @@ bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& p
 
 using namespace std::chrono;
 
-std::string TsharkManager::ConvertTimeStamp(const std::string& timestampStr)
+std::string TsharkManager::ConvertTimeStamp(double timestamp)
 {
-    const size_t dotPos = timestampStr.find('.');
-    if (dotPos == std::string::npos)
+    try
     {
-        throw std::invalid_argument("Invalid timestamp format.");
+        // 提取整数秒和小数部分（微秒）
+        std::time_t  seconds      = static_cast<std::time_t>(timestamp);
+        const double fractional   = timestamp - seconds;
+        const long   microseconds = static_cast<long>(fractional * 1'000'000); // 微秒
+
+        // 使用 std::gmtime 或 std::localtime（看你时区需求）
+        std::tm tmTime;
+#ifdef _WIN32
+        gmtime_s(&tmTime, &seconds); // Windows
+#else
+        gmtime_r(&seconds, &tm_time); // Linux/Unix
+#endif
+
+        std::ostringstream oss;
+        oss << std::put_time(&tmTime, "%Y-%m-%d %H:%M:%S");
+        oss << "." << std::setw(6) << std::setfill('0') << microseconds;
+
+        return oss.str();
     }
-
-    // 拆分整数秒与微秒部分
-    const std::string secPartStr  = timestampStr.substr(0, dotPos);
-    std::string       fracPartStr = timestampStr.substr(dotPos + 1);
-
-    // 补齐/截断到6位微秒
-    if (fracPartStr.size() > 6) fracPartStr = fracPartStr.substr(0, 6);
-    while (fracPartStr.size() < 6) fracPartStr += '0';
-
-    const seconds      secs   = seconds{ std::stoll(secPartStr) };
-    const microseconds micros = microseconds{ std::stoi(fracPartStr) };
-
-    // 构造 UTC 时间点
-    const sys_time<microseconds> tp = time_point_cast<microseconds>(sys_seconds{ secs } + micros);
-
-    // 使用 std::format 输出（UTC时间）："2025-05-19 08:52:34.123456"
-    return std::format("{:%Y-%m-%d %H:%M:%S}.{:06}", tp, micros.count() % 1'000'000);
+    catch (const std::exception& e)
+    {
+        return "Invalid timestamp";
+    }
 }
 
 void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
 {
-    std::string              captureFile = "resource\\capture.pcap";
-    std::vector<std::string> tsharkArgs  = {
+    std::string                    captureFile = "resource\\capture.pcap";
+    const std::vector<std::string> tsharkArgs  = {
         TsharkPath,
         "-i", adapterName.c_str(),
         "-w", captureFile, // 默认将采集到的数据包写入到这个文件下
@@ -604,6 +639,8 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
         "-e", "ipv6.src",
         "-e", "ip.dst",
         "-e", "ipv6.dst",
+        "-e", "ip.proto",
+        "-e", "ipv6.nxt",
         "-e", "tcp.srcport",
         "-e", "udp.srcport",
         "-e", "tcp.dstport",
@@ -614,7 +651,7 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
 
     std::string command;
     // command += "\"";
-    for (const auto arg : tsharkArgs)
+    for (const auto& arg : tsharkArgs)
     {
         command += arg;
         command += " ";
@@ -656,7 +693,7 @@ void TsharkManager::CaptureWorkThreadEntry(const std::string& adapterName)
     }
 }
 
-void TsharkManager::AdapterFlowTrendMonitorThreadEntry(std::string adapterName)
+void TsharkManager::AdapterFlowTrendMonitorThreadEntry(const std::string& adapterName)
 {
     AdapterFlowTrendMapLock.lock();
     if (!AdapterFlowTrendMonitorMap.contains(adapterName))
@@ -750,4 +787,62 @@ void TsharkManager::ProcessPacket(std::shared_ptr<Packet> packet)
     StoreLock.lock();
     PacketsToBeStore.push_back(packet);
     StoreLock.unlock();
+
+    if (packet->TransProtocol == "TCP" || packet->TransProtocol == "UDP")
+    {
+        // 只存储TCP和UDP包
+        FiveTuple tuple
+        {
+            packet->SourceIp,
+            packet->DestinationIp,
+            packet->SourcePort,
+            packet->DestinationPort,
+            packet->TransProtocol
+        };
+
+        std::shared_ptr<Session> session;
+        if (!SessionMap.contains(tuple))
+        {
+            session                = std::make_shared<Session>();
+            session->SessionId     = SessionMap.size() + 1;
+            session->Ip1           = packet->SourceIp;
+            session->Ip2           = packet->DestinationIp;
+            session->Ip1Location   = packet->SourceLocation;
+            session->Ip2Location   = packet->DestinationLocation;
+            session->Ip1Port       = packet->SourcePort;
+            session->Ip2Port       = packet->DestinationPort;
+            session->StartTime     = packet->Time;
+            session->EndTime       = packet->Time;
+            session->TransProtocol = packet->TransProtocol;
+            if (packet->TransProtocol != "TCP" && packet->TransProtocol != "UDP")
+            {
+                session->AppProtocol = packet->TransProtocol;
+            }
+            SessionMap.insert(std::make_pair(tuple, session));
+        }
+        else
+        {
+            session          = SessionMap.at(tuple);
+            session->EndTime = packet->Time;
+            if (session->TransProtocol != "TCP" && session->TransProtocol != "UDP")
+            {
+                session->AppProtocol = packet->TransProtocol;
+            }
+        }
+        {
+            session->PacketCount++;
+            session->TotalBytes += packet->Len;
+            packet->BelongSessionId = session->SessionId;
+        }
+        if (session->Ip1 == packet->SourceIp)
+        {
+            session->Ip1SendPacketCount++;
+            session->Ip1SendBytesCount += packet->Len;
+        }
+        else
+        {
+            session->Ip2SendPacketCount++;
+            session->Ip2SendBytesCount += packet->Len;
+        }
+    }
 }

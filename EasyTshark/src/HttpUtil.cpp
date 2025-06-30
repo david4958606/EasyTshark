@@ -59,7 +59,7 @@ void HttpUtil::QueryPacket(const httplib::Request& req, httplib::Response& res)
         {
             rapidjson::Value pktObj(rapidjson::kObjectType);
             pktObj.AddMember("frame_number", packet->FrameNumber, allocator);
-            pktObj.AddMember("timestamp", rapidjson::Value(packet->Time.c_str(), allocator), allocator);
+            pktObj.AddMember("timestamp", packet->Time, allocator);
             pktObj.AddMember("src_mac", rapidjson::Value(packet->SourceMac.c_str(), allocator), allocator);
             pktObj.AddMember("dst_mac", rapidjson::Value(packet->DestinationMac.c_str(), allocator), allocator);
             pktObj.AddMember("src_ip", rapidjson::Value(packet->SourceIp.c_str(), allocator), allocator);

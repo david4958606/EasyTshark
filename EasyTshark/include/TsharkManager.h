@@ -56,10 +56,12 @@ public:
     WorkStatus GetWorkStatus();
     void       Reset();
 
+    void PrintAllSessions() const;
+
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
 
-    static std::string ConvertTimeStamp(const std::string& timestampStr);
+    static std::string ConvertTimeStamp(double timestamp);
 
     std::string TsharkPath;
     std::string CurrentFilePath;
@@ -82,7 +84,7 @@ private:
     std::recursive_mutex                      AdapterFlowTrendMapLock;
     time_t                                    AdapterFlowTrendMonitorStartTime = 0;
 
-    void AdapterFlowTrendMonitorThreadEntry(std::string adapterName);
+    void AdapterFlowTrendMonitorThreadEntry(const std::string& adapterName);
 
     std::vector<std::shared_ptr<Packet>> PacketsToBeStore;
     std::mutex                           StoreLock;
@@ -93,6 +95,21 @@ private:
 
     WorkStatus           WorkStatus = STATUS_IDLE;
     std::recursive_mutex WorkStatusLock;
+
+    std::unordered_map<FiveTuple, std::shared_ptr<Session>, FiveTupleHash> SessionMap;
+
+    inline static const std::map<uint8_t, std::string> IP_PROTO_MAP = {
+        { 1, "ICMP" },
+        { 2, "IGMP" },
+        { 6, "TCP" },
+        { 17, "UDP" },
+        { 47, "GRE" },
+        { 50, "ESP" },
+        { 51, "AH" },
+        { 88, "EIGRP" },
+        { 89, "OSPF" },
+        { 132, "SCTP" }
+    };
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

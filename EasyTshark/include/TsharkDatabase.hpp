@@ -59,7 +59,7 @@ public:
         for (const auto& packet : packets)
         {
             sqlite3_bind_int(stmt, 1, packet->FrameNumber);
-            sqlite3_bind_double(stmt, 2, std::stod(packet->Time));
+            sqlite3_bind_double(stmt, 2, packet->Time);
             sqlite3_bind_int(stmt, 3, packet->CapLen);
             sqlite3_bind_int(stmt, 4, packet->Len);
             sqlite3_bind_text(stmt, 5, packet->SourceMac.c_str(), -1, SQLITE_STATIC);
@@ -120,7 +120,7 @@ public:
         {
             auto packet         = std::make_shared<Packet>();
             packet->FrameNumber = sqlite3_column_int(stmt, 0);
-            packet->Time        = std::to_string(sqlite3_column_double(stmt, 1));
+            packet->Time        = sqlite3_column_double(stmt, 1);
             packet->CapLen      = sqlite3_column_int(stmt, 2);
             packet->Len         = sqlite3_column_int(stmt, 3);
             packet->SourceMac   = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4))
@@ -149,7 +149,7 @@ public:
             packet->Info = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 13))
                                ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 13))
                                : "";
-            packet->FileOffset = sqlite3_column_int64(stmt, 14);
+            packet->FileOffset = sqlite3_column_int(stmt, 14);
             packetList.push_back(packet);
         }
         sqlite3_finalize(stmt);
