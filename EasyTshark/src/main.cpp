@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
     std::filesystem::path cwd = std::filesystem::current_path();
     gPtrTsharkManager         = std::make_shared<TsharkManager>(cwd.string());
 
-    // OnlineCapture(gPtrTsharkManager, "WLAN");
-    OfflineAnalysis(gPtrTsharkManager);
+    OnlineCapture(gPtrTsharkManager, "WLAN", 60);
+    // OfflineAnalysis(gPtrTsharkManager);
     gPtrTsharkManager->PrintAllSessions();
 
     SetUpServer();
@@ -54,11 +54,21 @@ void GetDetailedJson(TsharkManager& tsharkManager)
     std::cout << result << std::endl;
 }
 
-void OnlineCapture(const std::shared_ptr<TsharkManager>& gPtrTsharkManager, const std::string& adapterName)
+void OnlineCapture(const std::shared_ptr<TsharkManager>& gPtrTsharkManager,
+                   const std::string&                    adapterName,
+                   const int                             duration)
 {
     gPtrTsharkManager->StartCapture(adapterName);
 
     std::string input;
+    if (duration > 0)
+    {
+        std::cout << "Capture will stop after " << duration << " seconds." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(duration));
+        gPtrTsharkManager->StopCapture();
+        return;
+    }
+
     while (true)
     {
         std::cout << "Press Q to Stop: ";
