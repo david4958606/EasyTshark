@@ -10,6 +10,7 @@
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
 #include "PacketController.hpp"
+#include "SessionController.hpp"
 
 
 int main(int argc, char* argv[])
@@ -22,7 +23,7 @@ int main(int argc, char* argv[])
 
     OnlineCapture(gPtrTsharkManager, "WLAN", 1);
     // OfflineAnalysis(gPtrTsharkManager);
-    gPtrTsharkManager->PrintAllSessions();
+    // gPtrTsharkManager->PrintAllSessions();
 
     SetUpServer();
 }
@@ -102,14 +103,17 @@ void SetUpServer()
         AfterRequest(req, res);
     });
 
-
-    PacketController packetController(svr, gPtrTsharkManager);
-    packetController.RegisterRoute();
-
-    AdaptorController adaptorController(svr, gPtrTsharkManager);
-    adaptorController.RegisterRoute();
+    std::vector<std::shared_ptr<BaseController>> controllerList;
+    controllerList.push_back(std::make_shared<PacketController>(svr, gPtrTsharkManager));
+    controllerList.push_back(std::make_shared<AdaptorController>(svr, gPtrTsharkManager));
+    controllerList.push_back(std::make_shared<SessionController>(svr, gPtrTsharkManager));
+    for (const auto& controller : controllerList)
+    {
+        controller->RegisterRoute();
+    }
 
     svr.listen("127.0.0.1", 8080);
+    LOG_F(INFO, "Server is listening on http://127.0.0.1:8080");
 }
 
 void BeforeRequest(const httplib::Request& req)

@@ -438,6 +438,13 @@ void TsharkManager::QueryPackets(
     Storage->QueryPackets(queryCondition, packets);
 }
 
+void TsharkManager::QuerySessions(
+    QueryCondition&                        condition,
+    std::vector<std::shared_ptr<Session>>& sessionList) const
+{
+    Storage->QuerySessions(condition, sessionList);
+}
+
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const
 {
     const std::string command = EditcapPath + " -F pcap " + inputFile + " " + outputFile;
@@ -614,7 +621,7 @@ std::string TsharkManager::ConvertTimeStamp(double timestamp)
 
         return oss.str();
     }
-    catch (const std::exception& e)
+    catch (const std::exception&)
     {
         return "Invalid timestamp";
     }

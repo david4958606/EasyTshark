@@ -10,6 +10,7 @@
 #include "sqlite3.h"
 #include "TsharkDataType.h"
 #include "QueryCondition.h"
+#include "SessionSQL.hpp"
 
 class QueryCondition;
 
@@ -27,9 +28,10 @@ public:
             throw std::runtime_error("Failed to open database: " + dbName);
         }
 
-        if (CreatePacketTable())
+        if (!CreatePacketTable())
         {
-            throw std::runtime_error("Failed to create packet table");
+            const std::string err = "Failed to create packet table in database: " + dbName;
+            LOG_F(ERROR, err.c_str());
         }
         CreateSessionTable();
     }
@@ -161,7 +163,7 @@ public:
         return true;
     }
 
-    void StoreAndUpdateSessions(std::unordered_set<std::shared_ptr<Session>>& sessions) const
+    void StoreAndUpdateSessions(const std::unordered_set<std::shared_ptr<Session>>& sessions) const
     {
         sqlite3_exec(Db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
 
@@ -225,6 +227,41 @@ public:
         }
         // 释放语句
         sqlite3_finalize(stmt);
+    }
+
+    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList)
+    {
+        sqlite3_stmt* stmt = nullptr;
+        std::string   sql  = SessionSql::BuildSessionQuerySql(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare statement: ");
+            return false;
+        }
+        while (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            auto session                = std::make_shared<Session>();
+            session->SessionId          = sqlite3_column_int(stmt, 0);
+            session->Ip1                = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            session->Ip1Port            = sqlite3_column_int(stmt, 2);
+            session->Ip1Location        = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+            session->Ip2                = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+            session->Ip2Port            = sqlite3_column_int(stmt, 5);
+            session->Ip2Location        = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6));
+            session->TransProtocol      = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7));
+            session->AppProtocol        = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8));
+            session->StartTime          = sqlite3_column_double(stmt, 9);
+            session->EndTime            = sqlite3_column_double(stmt, 10);
+            session->Ip1SendPacketCount = sqlite3_column_int(stmt, 11);
+            session->Ip1SendBytesCount  = sqlite3_column_int(stmt, 12);
+            session->Ip2SendPacketCount = sqlite3_column_int(stmt, 13);
+            session->Ip2SendBytesCount  = sqlite3_column_int(stmt, 14);
+            session->PacketCount        = sqlite3_column_int(stmt, 15);
+            session->TotalBytes         = sqlite3_column_int(stmt, 16);
+            sessionList.push_back(session);
+        }
+        sqlite3_finalize(stmt);
+        return true;
     }
 
 private:

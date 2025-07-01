@@ -224,6 +224,8 @@
     <ClInclude Include="include\rapidxml\rapidxml_iterators.hpp" />
     <ClInclude Include="include\rapidxml\rapidxml_print.hpp" />
     <ClInclude Include="include\rapidxml\rapidxml_utils.hpp" />
+    <ClInclude Include="include\SessionController.hpp" />
+    <ClInclude Include="include\SessionSQL.hpp" />
     <ClInclude Include="include\sqlite3\sqlite3.h" />
     <ClInclude Include="include\Ip2RegionUtil.h" />
     <ClInclude Include="include\TsharkDatabase.hpp" />

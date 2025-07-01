@@ -66,7 +66,7 @@ public:
                 SendErrorResponse(res, ERROR_TSHARK_WRONG);
             }
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
@@ -86,7 +86,7 @@ public:
                 SendErrorResponse(res, ERROR_STATUS_WRONG);
             }
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             // 如果发生异常，返回错误响应
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
@@ -111,7 +111,7 @@ public:
                 SendErrorResponse(res, ERROR_STATUS_WRONG);
             }
         }
-        catch (std::exception& e)
+        catch (std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
@@ -131,7 +131,7 @@ public:
                 SendErrorResponse(res, ERROR_SUCCESS);
             }
         }
-        catch (std::exception& e)
+        catch (std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
@@ -172,7 +172,7 @@ public:
 
             res.set_content(buffer.GetString(), "application/json");
         }
-        catch (std::exception& e)
+        catch (std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
@@ -199,7 +199,7 @@ public:
             }
             SendJsonResponse(res, resDoc);
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
