@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     std::filesystem::path cwd = std::filesystem::current_path();
     gPtrTsharkManager         = std::make_shared<TsharkManager>(cwd.string());
 
-    OnlineCapture(gPtrTsharkManager, "WLAN", 2);
+    OnlineCapture(gPtrTsharkManager, "WLAN", 1);
     // OfflineAnalysis(gPtrTsharkManager);
     gPtrTsharkManager->PrintAllSessions();
 
