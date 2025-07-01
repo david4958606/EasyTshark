@@ -2,6 +2,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "loguru.hpp"
@@ -158,6 +159,72 @@ public:
         }
         sqlite3_finalize(stmt);
         return true;
+    }
+
+    void StoreAndUpdateSessions(std::unordered_set<std::shared_ptr<Session>>& sessions) const
+    {
+        sqlite3_exec(Db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+
+
+        std::string   upsertSql = R"(
+            INSERT INTO t_sessions (
+                session_id, ip1, ip1_location, ip1_port, ip2, ip2_location, ip2_port,
+                trans_proto, app_proto, start_time, end_time,
+                ip1_send_packets_count, ip1_send_bytes_count, ip2_send_packets_count, ip2_send_bytes_count,
+                packet_count, total_bytes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                trans_proto = excluded.trans_proto,
+                app_proto = excluded.app_proto,
+                start_time = excluded.start_time,
+                end_time = excluded.end_time,
+                ip1_send_packets_count = excluded.ip1_send_packets_count,
+                ip1_send_bytes_count = excluded.ip1_send_bytes_count,
+                ip2_send_packets_count = excluded.ip2_send_packets_count,
+                ip2_send_bytes_count = excluded.ip2_send_bytes_count,
+                packet_count = excluded.packet_count,
+                total_bytes = excluded.total_bytes
+        )";
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(Db, upsertSql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare upsert statement");
+            throw std::runtime_error("Failed to prepare upsert statement");
+        }
+        // 遍历列表并插入或更新数据
+        for (const auto& session : sessions)
+        {
+            sqlite3_bind_int(stmt, 1, session->SessionId);
+            sqlite3_bind_text(stmt, 2, session->Ip1.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 3, session->Ip1Location.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_int(stmt, 4, session->Ip1Port);
+            sqlite3_bind_text(stmt, 5, session->Ip2.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 6, session->Ip2Location.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_int(stmt, 7, session->Ip2Port);
+            sqlite3_bind_text(stmt, 8, session->TransProtocol.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 9, session->AppProtocol.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_double(stmt, 10, session->StartTime);
+            sqlite3_bind_double(stmt, 11, session->EndTime);
+            sqlite3_bind_int(stmt, 12, session->Ip1SendPacketCount);
+            sqlite3_bind_int(stmt, 13, session->Ip1SendBytesCount);
+            sqlite3_bind_int(stmt, 14, session->Ip2SendPacketCount);
+            sqlite3_bind_int(stmt, 15, session->Ip2SendBytesCount);
+            sqlite3_bind_int(stmt, 16, session->PacketCount);
+            sqlite3_bind_int(stmt, 17, session->TotalBytes);
+            if (sqlite3_step(stmt) != SQLITE_DONE)
+            {
+                LOG_F(ERROR, "Failed to execute upsert statement");
+                throw std::runtime_error("Failed to execute upsert statement");
+            }
+            sqlite3_reset(stmt); // 重置语句以便下一次绑定
+        }
+        if (sqlite3_exec(Db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to commit transaction");
+            throw std::runtime_error("Failed to commit transaction");
+        }
+        // 释放语句
+        sqlite3_finalize(stmt);
     }
 
 private:

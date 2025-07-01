@@ -110,6 +110,8 @@ private:
         { 89, "OSPF" },
         { 132, "SCTP" }
     };
+
+    std::unordered_set<std::shared_ptr<Session>> SessionSetTobeStore;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

@@ -476,6 +476,7 @@ void TsharkManager::Reset()
 
     AllPackets.clear();
     PacketsToBeStore.clear();
+    SessionSetTobeStore.clear();
 
     if (CaptureWorkThread)
     {
@@ -769,6 +770,11 @@ void TsharkManager::StorageThreadEntry()
                 LOG_F(INFO, "packet stored");
             PacketsToBeStore.clear();
         }
+        if (!SessionSetTobeStore.empty())
+        {
+            Storage->StoreAndUpdateSessions(SessionSetTobeStore);
+            SessionSetTobeStore.clear();
+        }
         StoreLock.unlock();
     };
     while (!StopFlag)
@@ -844,5 +850,6 @@ void TsharkManager::ProcessPacket(std::shared_ptr<Packet> packet)
             session->Ip2SendPacketCount++;
             session->Ip2SendBytesCount += packet->Len;
         }
+        SessionSetTobeStore.insert(session);
     }
 }
