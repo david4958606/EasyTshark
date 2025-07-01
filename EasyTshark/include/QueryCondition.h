@@ -9,4 +9,5 @@ public:
     std::string Proto;
     std::string Mac;
     std::string Location;
+    uint32_t    SessionId;
 };

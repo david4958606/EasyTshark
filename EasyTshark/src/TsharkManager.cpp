@@ -438,6 +438,13 @@ void TsharkManager::QueryPackets(
     Storage->QueryPackets(queryCondition, packets);
 }
 
+void TsharkManager::QuerySessions(
+    QueryCondition&                        condition,
+    std::vector<std::shared_ptr<Session>>& sessionList) const
+{
+    Storage->QuerySessions(condition, sessionList);
+}
+
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const
 {
     const std::string command = EditcapPath + " -F pcap " + inputFile + " " + outputFile;
@@ -476,6 +483,7 @@ void TsharkManager::Reset()
 
     AllPackets.clear();
     PacketsToBeStore.clear();
+    SessionSetTobeStore.clear();
 
     if (CaptureWorkThread)
     {
@@ -613,7 +621,7 @@ std::string TsharkManager::ConvertTimeStamp(double timestamp)
 
         return oss.str();
     }
-    catch (const std::exception& e)
+    catch (const std::exception&)
     {
         return "Invalid timestamp";
     }
@@ -769,6 +777,11 @@ void TsharkManager::StorageThreadEntry()
                 LOG_F(INFO, "packet stored");
             PacketsToBeStore.clear();
         }
+        if (!SessionSetTobeStore.empty())
+        {
+            Storage->StoreAndUpdateSessions(SessionSetTobeStore);
+            SessionSetTobeStore.clear();
+        }
         StoreLock.unlock();
     };
     while (!StopFlag)
@@ -844,5 +857,6 @@ void TsharkManager::ProcessPacket(std::shared_ptr<Packet> packet)
             session->Ip2SendPacketCount++;
             session->Ip2SendBytesCount += packet->Len;
         }
+        SessionSetTobeStore.insert(session);
     }
 }

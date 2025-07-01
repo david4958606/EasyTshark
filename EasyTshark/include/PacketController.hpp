@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "BaseController.hpp"
 #include "httplib.h"
-#include "main.h"
-#include "prettywriter.h"
 #include "TsharkManager.h"
 #include "MiscUtil.h"
 
@@ -43,7 +41,7 @@ public:
             __TsharkManager->QueryPackets(queryCondition, packetList);
             SendDataList(res, packetList);
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }
@@ -84,7 +82,7 @@ public:
                 SendErrorResponse(res, ERROR_TSHARK_WRONG);
             }
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             SendErrorResponse(res, ERROR_INTERNAL_WRONG);
         }

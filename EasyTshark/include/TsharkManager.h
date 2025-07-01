@@ -50,6 +50,7 @@ public:
 
     // Database
     void QueryPackets(QueryCondition& queryCondition, std::vector<std::shared_ptr<Packet>>& packets) const;
+    void QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList) const;
 
     bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;
 
@@ -110,6 +111,8 @@ private:
         { 89, "OSPF" },
         { 132, "SCTP" }
     };
+
+    std::unordered_set<std::shared_ptr<Session>> SessionSetTobeStore;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

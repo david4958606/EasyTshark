@@ -168,25 +168,54 @@ protected:
             {
                 queryCondition.Ip = doc["ip"].GetString();
             }
+            else
+            {
+                queryCondition.Ip.clear(); // Default value if not provided
+            }
 
             if (doc.HasMember("port") && doc["port"].IsUint())
             {
                 queryCondition.Port = static_cast<uint16_t>(doc["port"].GetUint());
+            }
+            else
+            {
+                queryCondition.Port = 0; // Default value if not provided
             }
 
             if (doc.HasMember("proto") && doc["proto"].IsString())
             {
                 queryCondition.Proto = doc["proto"].GetString();
             }
+            else
+            {
+                queryCondition.Proto.clear(); // Default value if not provided
+            }
 
             if (doc.HasMember("mac") && doc["mac"].IsString())
             {
                 queryCondition.Mac = doc["mac"].GetString();
             }
+            else
+            {
+                queryCondition.Mac.clear();
+            }
 
             if (doc.HasMember("location") && doc["location"].IsString())
             {
                 queryCondition.Location = doc["location"].GetString();
+            }
+            else
+            {
+                queryCondition.Location.clear();
+            }
+
+            if (doc.HasMember("session_id") && doc["session_id"].IsUint())
+            {
+                queryCondition.SessionId = static_cast<uint16_t>(doc["session_id"].GetUint());
+            }
+            else
+            {
+                queryCondition.SessionId = 0;
             }
         }
         catch (std::exception&)
