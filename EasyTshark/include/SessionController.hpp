@@ -18,9 +18,9 @@ public:
                 SendErrorResponse(res, ERROR_PARAMETER_WRONG);
                 return;
             }
+            int                                   total = 0;
             std::vector<std::shared_ptr<Session>> sessionList;
-            __TsharkManager->QuerySessions(queryCondition, sessionList);
-            int total = sessionList.size();
+            __TsharkManager->QuerySessions(queryCondition, sessionList, total);
             SendDataList(res, sessionList, total);
         }
         catch (const std::exception&)

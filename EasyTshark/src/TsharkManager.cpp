@@ -441,9 +441,9 @@ void TsharkManager::QueryPackets(
 
 void TsharkManager::QuerySessions(
     QueryCondition&                        condition,
-    std::vector<std::shared_ptr<Session>>& sessionList) const
+    std::vector<std::shared_ptr<Session>>& sessionList, int& total) const
 {
-    Storage->QuerySessions(condition, sessionList);
+    Storage->QuerySessions(condition, sessionList, total);
 }
 
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const

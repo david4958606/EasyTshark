@@ -249,10 +249,11 @@ public:
         sqlite3_finalize(stmt);
     }
 
-    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList)
+    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList, int& total)
     {
-        sqlite3_stmt* stmt = nullptr;
-        std::string   sql  = SessionSql::BuildSessionQuerySql(condition);
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = SessionSql::BuildSessionQuerySql(condition);
         if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
         {
             LOG_F(ERROR, "Failed to prepare statement: ");
@@ -281,6 +282,23 @@ public:
             sessionList.push_back(session);
         }
         sqlite3_finalize(stmt);
+        sql = SessionSql::BuildSessionQuerySql_Count(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare count statement: ");
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            LOG_F(ERROR, "Failed to execute count statement");
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
         return true;
     }
 
