@@ -6,6 +6,7 @@
 
 #include "AdaptorController.hpp"
 #include "httplib.h"
+#include "HttpUtil.h"
 #include "TsharkManager.h"
 #include "Ip2RegionUtil.h"
 #include "loguru.hpp"
@@ -18,10 +19,10 @@ int main(int argc, char* argv[])
     InitLog(argc, argv);
 
     InitIp2RegionUtil();
-    std::filesystem::path cwd = std::filesystem::current_path();
-    gPtrTsharkManager         = std::make_shared<TsharkManager>(cwd.string());
+    const std::filesystem::path cwd = std::filesystem::current_path();
+    gPtrTsharkManager               = std::make_shared<TsharkManager>(cwd.string());
 
-    OnlineCapture(gPtrTsharkManager, "WLAN", 1);
+    // OnlineCapture(gPtrTsharkManager, "WLAN", 5);
     // OfflineAnalysis(gPtrTsharkManager);
     // gPtrTsharkManager->PrintAllSessions();
 
@@ -92,16 +93,9 @@ void OfflineAnalysis(const std::shared_ptr<TsharkManager>& gPtrTsharkManager)
 void SetUpServer()
 {
     httplib::Server svr;
-    svr.set_pre_routing_handler([](const httplib::Request& req, httplib::Response& /*res*/)
-    {
-        BeforeRequest(req);
-        return httplib::Server::HandlerResponse::Unhandled;
-    });
+    svr.set_pre_routing_handler(HttpUtil::BeforeRequest);
 
-    svr.set_post_routing_handler([](const httplib::Request& req, const httplib::Response& res)
-    {
-        AfterRequest(req, res);
-    });
+    svr.set_post_routing_handler(HttpUtil::AfterRequest);
 
     std::vector<std::shared_ptr<BaseController>> controllerList;
     controllerList.push_back(std::make_shared<PacketController>(svr, gPtrTsharkManager));
@@ -114,14 +108,4 @@ void SetUpServer()
 
     svr.listen("127.0.0.1", 8080);
     LOG_F(INFO, "Server is listening on http://127.0.0.1:8080");
-}
-
-void BeforeRequest(const httplib::Request& req)
-{
-    LOG_F(INFO, "[Before] URL: %s | IP: %s", req.path.c_str(), req.remote_addr.c_str());
-}
-
-void AfterRequest(const httplib::Request& req, const httplib::Response& res)
-{
-    LOG_F(INFO, "[After]  Status Code: %d", res.status);
 }

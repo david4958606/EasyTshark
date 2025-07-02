@@ -56,7 +56,6 @@ public:
             {
                 return SendErrorResponse(res, ERROR_PARAMETER_WRONG);
             }
-
             if (__TsharkManager->StartCapture(adapterName))
             {
                 SendSuccessResponse(res);

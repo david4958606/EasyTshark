@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "loguru.hpp"
+#include "PageAndOrder.hpp"
 #include "QueryCondition.h"
 
 namespace PacketSql
@@ -92,6 +93,9 @@ namespace PacketSql
                 ss << conditionList[i];
             }
         }
+
+        // page and order
+        ss << PageHelper::GetPageSql();
 
         sql = ss.str();
         LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
