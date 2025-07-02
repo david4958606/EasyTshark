@@ -106,10 +106,12 @@ public:
     }
 
     bool QueryPackets(const QueryCondition&                 queryCondition,
-                      std::vector<std::shared_ptr<Packet>>& packetList) const
+                      std::vector<std::shared_ptr<Packet>>& packetList,
+                      int&                                  total) const
     {
-        sqlite3_stmt *    stmt = nullptr, *countStmt = nullptr;
-        const std::string sql  = PacketSql::BuildPacketQuerySql(queryCondition);
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = PacketSql::BuildPacketQuerySql(queryCondition);
 
 
         if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
@@ -131,8 +133,8 @@ public:
             packet->CapLen      = sqlite3_column_int(stmt, 2);
             packet->Len         = sqlite3_column_int(stmt, 3);
             packet->SourceMac   = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4))
-                                      ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4))
-                                      : "";
+                                    ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4))
+                                    : "";
             packet->DestinationMac = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5))
                                          ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5))
                                          : "";
@@ -151,8 +153,8 @@ public:
                                               : "";
             packet->DestinationPort = sqlite3_column_int(stmt, 11);
             packet->Protocol        = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 12))
-                                          ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 12))
-                                          : "";
+                                   ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 12))
+                                   : "";
             packet->Info = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 13))
                                ? reinterpret_cast<const char*>(sqlite3_column_text(stmt, 13))
                                : "";
@@ -160,6 +162,24 @@ public:
             packetList.push_back(packet);
         }
         sqlite3_finalize(stmt);
+
+        sql = PacketSql::BuildPacketQuerySql_Count(queryCondition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare count statement: ");
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            LOG_F(ERROR, "Failed to execute count statement");
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
         return true;
     }
 
@@ -229,10 +249,11 @@ public:
         sqlite3_finalize(stmt);
     }
 
-    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList)
+    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList, int& total)
     {
-        sqlite3_stmt* stmt = nullptr;
-        std::string   sql  = SessionSql::BuildSessionQuerySql(condition);
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = SessionSql::BuildSessionQuerySql(condition);
         if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
         {
             LOG_F(ERROR, "Failed to prepare statement: ");
@@ -261,6 +282,23 @@ public:
             sessionList.push_back(session);
         }
         sqlite3_finalize(stmt);
+        sql = SessionSql::BuildSessionQuerySql_Count(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare count statement: ");
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            LOG_F(ERROR, "Failed to execute count statement");
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
         return true;
     }
 

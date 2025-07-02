@@ -433,16 +433,17 @@ bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& resu
 
 void TsharkManager::QueryPackets(
     QueryCondition&                       queryCondition,
-    std::vector<std::shared_ptr<Packet>>& packets) const
+    std::vector<std::shared_ptr<Packet>>& packets,
+    int&                                  total) const
 {
-    Storage->QueryPackets(queryCondition, packets);
+    Storage->QueryPackets(queryCondition, packets, total);
 }
 
 void TsharkManager::QuerySessions(
     QueryCondition&                        condition,
-    std::vector<std::shared_ptr<Session>>& sessionList) const
+    std::vector<std::shared_ptr<Session>>& sessionList, int& total) const
 {
-    Storage->QuerySessions(condition, sessionList);
+    Storage->QuerySessions(condition, sessionList, total);
 }
 
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const

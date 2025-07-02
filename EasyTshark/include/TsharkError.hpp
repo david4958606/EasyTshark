@@ -23,16 +23,14 @@ public:
     }
 
 private:
-    static std::map<int, std::string> ErrorMsgMap;
-};
-
-std::map<int, std::string> TsharkError::ErrorMsgMap = {
-    { ERROR_SUCCESS, "操作成功" },
-    { ERROR_PARAMETER_WRONG, "参数错误" },
-    { ERROR_INTERNAL_WRONG, "内部错误" },
-    { ERROR_DATABASE_WRONG, "数据库错误" },
-    { ERROR_TSHARK_WRONG, "tshark执行错误" },
-    { ERROR_STATUS_WRONG, "状态错误" },
-    { ERROR_FILE_TOO_LARGE, "文件太大了" },
-    { ERROR_FILE_NOT_FOUND, "文件不存在" }
+    inline static std::map<int, std::string> ErrorMsgMap = {
+        { ERROR_SUCCESS, "操作成功" },
+        { ERROR_PARAMETER_WRONG, "参数错误" },
+        { ERROR_INTERNAL_WRONG, "内部错误" },
+        { ERROR_DATABASE_WRONG, "数据库错误" },
+        { ERROR_TSHARK_WRONG, "tshark执行错误" },
+        { ERROR_STATUS_WRONG, "状态错误" },
+        { ERROR_FILE_TOO_LARGE, "文件太大了" },
+        { ERROR_FILE_NOT_FOUND, "文件不存在" }
+    };
 };
