@@ -64,6 +64,9 @@ namespace SessionSql
                 ss << conditionList[i];
             }
         }
+
+        ss << PageHelper::GetPageSql();
+
         sql = ss.str();
         LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
         return sql;
