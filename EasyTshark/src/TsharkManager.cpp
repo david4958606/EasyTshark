@@ -433,9 +433,10 @@ bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& resu
 
 void TsharkManager::QueryPackets(
     QueryCondition&                       queryCondition,
-    std::vector<std::shared_ptr<Packet>>& packets) const
+    std::vector<std::shared_ptr<Packet>>& packets,
+    int&                                  total) const
 {
-    Storage->QueryPackets(queryCondition, packets);
+    Storage->QueryPackets(queryCondition, packets, total);
 }
 
 void TsharkManager::QuerySessions(

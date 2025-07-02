@@ -37,9 +37,11 @@ public:
                 SendErrorResponse(res, ERROR_PARAMETER_WRONG);
                 return;
             }
+
+            int                                  total = 0;
             std::vector<std::shared_ptr<Packet>> packetList;
-            __TsharkManager->QueryPackets(queryCondition, packetList);
-            SendDataList(res, packetList);
+            __TsharkManager->QueryPackets(queryCondition, packetList, total);
+            SendDataList(res, packetList, total);
         }
         catch (const std::exception&)
         {

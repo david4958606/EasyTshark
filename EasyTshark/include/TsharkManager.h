@@ -49,7 +49,7 @@ public:
     bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result) const;
 
     // Database
-    void QueryPackets(QueryCondition& queryCondition, std::vector<std::shared_ptr<Packet>>& packets) const;
+    void QueryPackets(QueryCondition& queryCondition, std::vector<std::shared_ptr<Packet>>& packets, int& total) const;
     void QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList) const;
 
     bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;

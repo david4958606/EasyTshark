@@ -20,7 +20,8 @@ public:
             }
             std::vector<std::shared_ptr<Session>> sessionList;
             __TsharkManager->QuerySessions(queryCondition, sessionList);
-            SendDataList(res, sessionList);
+            int total = sessionList.size();
+            SendDataList(res, sessionList, total);
         }
         catch (const std::exception&)
         {

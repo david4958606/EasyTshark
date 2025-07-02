@@ -101,4 +101,17 @@ namespace PacketSql
         LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
         return sql;
     }
+
+    inline std::string BuildPacketQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildPacketQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
 }

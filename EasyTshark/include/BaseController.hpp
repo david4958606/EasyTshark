@@ -49,7 +49,8 @@ public:
 protected:
     template <typename Data=Packet>
     void SendDataList(httplib::Response&                  res,
-                      std::vector<std::shared_ptr<Data>>& dataList)
+                      std::vector<std::shared_ptr<Data>>& dataList,
+                      int                                 total)
     {
         /**
          * {
@@ -67,6 +68,7 @@ protected:
         resDoc.AddMember("msg",
                          rapidjson::Value(TsharkError::GetErrorMsg(ERROR_SUCCESS).c_str(), allocator),
                          allocator);
+        resDoc.AddMember("total", total, allocator);
         // Set data
         rapidjson::Value dataArray(rapidjson::kArrayType);
         for (const auto& data : dataList)
