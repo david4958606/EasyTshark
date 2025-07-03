@@ -1,0 +1,39 @@
+﻿#pragma once
+#include "BaseController.hpp"
+
+class StatsController : public BaseController
+{
+public:
+    StatsController(httplib::Server& server, const std::shared_ptr<TsharkManager>& tsharkManager)
+        : BaseController(server, tsharkManager)
+    {}
+
+    void RegisterRoute() override
+    {
+        __Server.Post("/api/getIPStatsList", [this](const httplib::Request& req, httplib::Response& res)
+        {
+            GetIpStatsList(req, res);
+        });
+    }
+
+    void GetIpStatsList(const httplib::Request& req, httplib::Response& res)
+    {
+        try
+        {
+            QueryCondition queryCondition;
+            if (!ParseQueryCondition(req, queryCondition))
+            {
+                SendErrorResponse(res, ERROR_PARAMETER_WRONG);
+                return;
+            }
+            std::vector<std::shared_ptr<IpStatsInfo>> ipStatsList;
+            int                                       total = 0;
+            __TsharkManager->QueryIpStats(queryCondition, ipStatsList, total);
+            SendDataList(res, ipStatsList, total);
+        }
+        catch (const std::exception&)
+        {
+            SendErrorResponse(res, ERROR_INTERNAL_WRONG);
+        }
+    }
+};

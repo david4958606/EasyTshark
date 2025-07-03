@@ -1,9 +1,12 @@
 ﻿#pragma once
-import <iostream>;
-import <cstdio>;
-import <cstdlib>;
-import <cstring>;
-import <vector>;
+#include <iostream>;
+#include <cstdio>;
+#include <cstdlib>;
+#include <cstring>;
+#include <set>;
+#include <vector>;
+
+#include "MiscUtil.h"
 
 struct BaseDataObject
 {
@@ -195,5 +198,47 @@ struct FiveTupleHash
         hashCombine(tuple.TransProto);
 
         return seed;
+    }
+};
+
+struct IpStatsInfo : BaseDataObject
+{
+    std::string           Ip;
+    std::string           Location;
+    double                EarliestTime;
+    double                LatestTime;
+    std::set<int>         Ports;
+    std::set<std::string> Protocols;
+
+    int TotalSendPackets = 0;
+    int TotalRecvPackets = 0;
+    int TotalSendBytes   = 0;
+    int TotalRecvBytes   = 0;
+    int TcpSessionCount  = 0;
+    int UdpSessionCount  = 0;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const override
+    {
+        obj.AddMember("ip", rapidjson::Value(Ip.c_str(), allocator), allocator);
+        obj.AddMember("location", rapidjson::Value(Location.c_str(), allocator), allocator);
+
+        std::string sProtocols = MiscUtil::ConvertSetToString(Protocols, ',');
+        obj.AddMember("proto", rapidjson::Value(sProtocols.c_str(), allocator), allocator);
+
+        rapidjson::Value portsValue;
+        portsValue.SetArray();
+        for (const auto& port : Ports)
+        {
+            portsValue.PushBack(rapidjson::Value(port), allocator);
+        }
+        obj.AddMember("ports", portsValue, allocator);
+        obj.AddMember("earliest_time", EarliestTime, allocator);
+        obj.AddMember("latest_time", LatestTime, allocator);
+        obj.AddMember("total_send_packets", TotalSendPackets, allocator);
+        obj.AddMember("total_recv_packets", TotalRecvPackets, allocator);
+        obj.AddMember("total_send_bytes", TotalSendBytes, allocator);
+        obj.AddMember("total_recv_bytes", TotalRecvBytes, allocator);
+        obj.AddMember("tcp_session_count", TcpSessionCount, allocator);
+        obj.AddMember("udp_session_count", UdpSessionCount, allocator);
     }
 };

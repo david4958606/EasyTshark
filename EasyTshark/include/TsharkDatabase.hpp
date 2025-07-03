@@ -11,6 +11,7 @@
 #include "TsharkDataType.h"
 #include "QueryCondition.h"
 #include "SessionSQL.hpp"
+#include "StatsSQL.hpp"
 
 class QueryCondition;
 
@@ -249,7 +250,8 @@ public:
         sqlite3_finalize(stmt);
     }
 
-    bool QuerySessions(QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList, int& total)
+    bool QuerySessions(const QueryCondition& condition, std::vector<std::shared_ptr<Session>>& sessionList,
+                       int&                  total) const
     {
         sqlite3_stmt* stmt      = nullptr;
         sqlite3_stmt* countStmt = nullptr;
@@ -295,6 +297,62 @@ public:
         else
         {
             LOG_F(ERROR, "Failed to execute count statement");
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
+        return true;
+    }
+
+    bool QueryIpStats(const QueryCondition&                      condition,
+                      std::vector<std::shared_ptr<IpStatsInfo>>& ipStatsList,
+                      int&                                       total) const
+    {
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = StatsSql::BuildIpStatsQuerySql(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            std::cout << "Failed to prepare statement: " << sqlite3_errmsg(Db) << std::endl;
+            return false;
+        }
+
+        while (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            std::shared_ptr<IpStatsInfo> ipStatsInfo = std::make_shared<IpStatsInfo>();
+            ipStatsInfo->Ip                          = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            ipStatsInfo->Location                    = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            ipStatsInfo->EarliestTime                = sqlite3_column_double(stmt, 2);
+            ipStatsInfo->LatestTime                  = sqlite3_column_double(stmt, 3);
+            std::string portsStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
+            auto        portVecStr = MiscUtil::SplitString(portsStr, ',');
+            ipStatsInfo->Ports     = MiscUtil::ToIntSet(portVecStr);
+
+            std::string transProtosStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5)));
+            std::string appProtosStr(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6)));
+            ipStatsInfo->Protocols        = MiscUtil::SplitString(transProtosStr + "," + appProtosStr, ',');
+            ipStatsInfo->TotalSendPackets = sqlite3_column_int(stmt, 7);
+            ipStatsInfo->TotalSendBytes   = sqlite3_column_int(stmt, 8);
+            ipStatsInfo->TotalRecvPackets = sqlite3_column_int(stmt, 9);
+            ipStatsInfo->TotalRecvBytes   = sqlite3_column_int(stmt, 10);
+            ipStatsInfo->TcpSessionCount  = sqlite3_column_int(stmt, 11);
+            ipStatsInfo->UdpSessionCount  = sqlite3_column_int(stmt, 12);
+            ipStatsList.push_back(ipStatsInfo);
+        }
+        sqlite3_finalize(stmt);
+        sql = StatsSql::BuildIpStatsQuerySql_Count(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            std::cout << "Failed to prepare count statement: " << sqlite3_errmsg(Db) << std::endl;
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            std::cout << "Failed to execute count statement: " << sqlite3_errmsg(Db) << std::endl;
             sqlite3_finalize(countStmt);
             return false;
         }
