@@ -453,6 +453,12 @@ void TsharkManager::QueryIpStats(const QueryCondition&                      cond
     Storage->QueryIpStats(condition, ipStatsList, total);
 }
 
+void TsharkManager::QueryProtocolStats(const QueryCondition&                         condition,
+                                       std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList, int& total) const
+{
+    Storage->QueryProtocolStats(condition, protoStatsList, total);
+}
+
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const
 {
     const std::string command = EditcapPath + " -F pcap " + inputFile + " " + outputFile;

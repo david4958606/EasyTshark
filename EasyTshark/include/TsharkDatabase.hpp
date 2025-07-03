@@ -7,6 +7,7 @@
 
 #include "loguru.hpp"
 #include "PacketSQL.hpp"
+#include "ProtoList.hpp"
 #include "sqlite3.h"
 #include "TsharkDataType.h"
 #include "QueryCondition.h"
@@ -353,6 +354,49 @@ public:
         else
         {
             std::cout << "Failed to execute count statement: " << sqlite3_errmsg(Db) << std::endl;
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
+        return true;
+    }
+
+    bool QueryProtocolStats(const QueryCondition&                         condition,
+                            std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList,
+                            int&                                          total) const
+    {
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = StatsSql::BuildProtocolStatsQuerySql(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare statement: ");
+            return false;
+        }
+        while (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            auto protoStatsInfo          = std::make_shared<ProtoStatsInfo>();
+            protoStatsInfo->Protocol     = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            protoStatsInfo->TotalPackets = sqlite3_column_int(stmt, 1);
+            protoStatsInfo->TotalBytes   = sqlite3_column_int(stmt, 2);
+            protoStatsInfo->SessionCount = sqlite3_column_int(stmt, 3);
+            protoStatsInfo->ProtoDesc    = ProtoList::GetProtoDesc(protoStatsInfo->Protocol);
+            protoStatsList.push_back(protoStatsInfo);
+        }
+        sqlite3_finalize(stmt);
+        sql = StatsSql::BuildProtocolStatsQuerySql_Count(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare count statement: ");
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            LOG_F(ERROR, "Failed to execute count statement");
             sqlite3_finalize(countStmt);
             return false;
         }

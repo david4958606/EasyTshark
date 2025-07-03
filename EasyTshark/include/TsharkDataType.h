@@ -201,8 +201,9 @@ struct FiveTupleHash
     }
 };
 
-struct IpStatsInfo : BaseDataObject
+struct IpStatsInfo final : BaseDataObject
 {
+    virtual               ~IpStatsInfo() = default;
     std::string           Ip;
     std::string           Location;
     double                EarliestTime;
@@ -240,5 +241,24 @@ struct IpStatsInfo : BaseDataObject
         obj.AddMember("total_recv_bytes", TotalRecvBytes, allocator);
         obj.AddMember("tcp_session_count", TcpSessionCount, allocator);
         obj.AddMember("udp_session_count", UdpSessionCount, allocator);
+    }
+};
+
+struct ProtoStatsInfo : BaseDataObject
+{
+    virtual     ~ProtoStatsInfo() = default;
+    std::string Protocol;
+    int         TotalPackets = 0;
+    int         TotalBytes   = 0;
+    int         SessionCount = 0;
+    std::string ProtoDesc;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const override
+    {
+        obj.AddMember("protocol", rapidjson::Value(Protocol.c_str(), allocator), allocator);
+        obj.AddMember("total_packets", TotalPackets, allocator);
+        obj.AddMember("total_bytes", TotalBytes, allocator);
+        obj.AddMember("session_count", SessionCount, allocator);
+        obj.AddMember("proto_desc", rapidjson::Value(ProtoDesc.c_str(), allocator), allocator);
     }
 };

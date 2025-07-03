@@ -59,6 +59,10 @@ public:
                       std::vector<std::shared_ptr<IpStatsInfo>>& ipStatsList,
                       int&                                       total) const;
 
+    void QueryProtocolStats(const QueryCondition&                         condition,
+                            std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList,
+                            int&                                          total) const;
+
     bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;
 
     WorkStatus GetWorkStatus();

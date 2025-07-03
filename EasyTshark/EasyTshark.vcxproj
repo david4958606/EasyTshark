@@ -183,6 +183,7 @@
     <ClInclude Include="include\PacketController.hpp" />
     <ClInclude Include="include\PacketSQL.hpp" />
     <ClInclude Include="include\PageAndOrder.hpp" />
+    <ClInclude Include="include\ProtoList.hpp" />
     <ClInclude Include="include\rapidjson\allocators.h" />
     <ClInclude Include="include\rapidjson\cursorstreamwrapper.h" />
     <ClInclude Include="include\rapidjson\document.h" />

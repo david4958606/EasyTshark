@@ -61,8 +61,8 @@ namespace StatsSql
                 CASE WHEN trans_proto LIKE '%UDP%' THEN 1 ELSE 0 END AS udp_sessions
             FROM t_sessions
         ) t
-        GROUP BY ip;)";
-        oss << PageHelper::GetPageSql;
+        GROUP BY ip)";
+        oss << PageHelper::GetPageSql();
         sql = oss.str();
         LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
         return sql;
@@ -71,6 +71,46 @@ namespace StatsSql
     inline std::string BuildIpStatsQuerySql_Count(const QueryCondition& condition)
     {
         std::string sql = BuildIpStatsQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
+
+    inline std::string BuildProtocolStatsQuerySql(const QueryCondition& condition)
+    {
+        std::string        sql;
+        std::ostringstream oss;
+        oss << R"(
+        SELECT
+            protocol,
+            SUM(packet_count) AS totalPackets,
+            SUM(total_bytes) AS total_bytes,
+            COUNT(DISTINCT session_id) AS sessionCount
+        FROM (
+            SELECT session_id, trans_proto AS protocol, packet_count, total_bytes
+            FROM t_sessions
+            WHERE trans_proto IS NOT NULL AND trans_proto != ''
+            UNION ALL
+            SELECT session_id, app_proto AS protocol, packet_count, total_bytes
+            FROM t_sessions
+            WHERE app_proto IS NOT NULL AND app_proto != ''
+        ) AS combined
+        GROUP BY protocol
+        )";
+        oss << PageHelper::GetPageSql();
+        sql = oss.str();
+        LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
+        return sql;
+    }
+
+    inline std::string BuildProtocolStatsQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildProtocolStatsQuerySql(condition);
         auto        pos = sql.find("LIMIT");
         if (pos != std::string::npos)
         {

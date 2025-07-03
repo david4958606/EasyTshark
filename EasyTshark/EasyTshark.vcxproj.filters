@@ -263,6 +263,9 @@
     <ClInclude Include="include\StatsController.hpp">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="include\ProtoList.hpp">
+      <Filter>Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resource\ip2region.xdb">
