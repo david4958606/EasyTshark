@@ -94,6 +94,14 @@ void OfflineAnalysis(const std::shared_ptr<TsharkManager>& gPtrTsharkManager)
 void SetUpServer()
 {
     httplib::Server svr;
+    svr.Options(".*", [](const httplib::Request& req, httplib::Response& res)
+    {
+        res.set_header("Access-Control-Allow-Origin", "http://localhost:3000");
+        res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE, PUT");
+        res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+        res.set_header("Access-Control-Allow-Credentials", "true");
+        res.status = 200;
+    });
     svr.set_pre_routing_handler(HttpUtil::BeforeRequest);
 
     svr.set_post_routing_handler(HttpUtil::AfterRequest);
