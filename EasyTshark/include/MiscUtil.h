@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include <set>
 #include <sstream>
 
 #include "rapidxml.hpp"
@@ -148,5 +149,76 @@ namespace MiscUtil
         std::strftime(buffer, sizeof(buffer), "easytshark_%Y-%m-%d_%H-%M-%S.pcap", localTime);
 
         return isFullPath ? GetDefaultDataDir() + std::string(buffer) : std::string(buffer);
+    }
+
+    template <typename T>
+    inline std::string ConvertSetToString(const std::set<T>& inputSet, const std::string& delimiter = ",")
+    {
+        std::ostringstream oss;
+        auto               it = inputSet.begin();
+        while (it != inputSet.end())
+        {
+            oss << *it;
+            ++it;
+            if (it != inputSet.end())
+            {
+                oss << delimiter;
+            }
+        }
+        return oss.str();
+    }
+
+    template <typename T>
+    inline std::string ConvertSetToString(const std::set<T>& inputSet, const char delimiter)
+    {
+        return ConvertSetToString(inputSet, std::string(1, delimiter));
+    }
+
+    inline std::set<std::string> SplitString(const std::string& input, char delimiter)
+    {
+        std::set<std::string> result;
+        std::stringstream     ss(input);
+        std::string           item;
+        while (std::getline(ss, item, delimiter))
+        {
+            if (!item.empty())
+                result.insert(item);
+        }
+        return result;
+    }
+
+    inline std::set<std::string> SplitString(const std::string& input, const std::string& delimiter)
+    {
+        std::set<std::string> result;
+        size_t                start = 0;
+        size_t                end;
+        while ((end = input.find(delimiter, start)) != std::string::npos)
+        {
+            std::string token = input.substr(start, end - start);
+            if (!token.empty())
+                result.insert(token);
+            start = end + delimiter.length();
+        }
+        std::string last = input.substr(start);
+        if (!last.empty())
+            result.insert(last);
+        return result;
+    }
+
+    inline std::set<int> ToIntSet(const std::set<std::string>& inputSet)
+    {
+        std::set<int> result;
+        for (const auto& str : inputSet)
+        {
+            try
+            {
+                result.insert(std::stoi(str));
+            }
+            catch (const std::invalid_argument&)
+            {}
+            catch (const std::out_of_range&)
+            {}
+        }
+        return result;
     }
 }

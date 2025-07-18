@@ -183,6 +183,7 @@
     <ClInclude Include="include\PacketController.hpp" />
     <ClInclude Include="include\PacketSQL.hpp" />
     <ClInclude Include="include\PageAndOrder.hpp" />
+    <ClInclude Include="include\ProtoList.hpp" />
     <ClInclude Include="include\rapidjson\allocators.h" />
     <ClInclude Include="include\rapidjson\cursorstreamwrapper.h" />
     <ClInclude Include="include\rapidjson\document.h" />
@@ -229,6 +230,8 @@
     <ClInclude Include="include\SessionSQL.hpp" />
     <ClInclude Include="include\sqlite3\sqlite3.h" />
     <ClInclude Include="include\Ip2RegionUtil.h" />
+    <ClInclude Include="include\StatsController.hpp" />
+    <ClInclude Include="include\StatsSQL.hpp" />
     <ClInclude Include="include\TsharkDatabase.hpp" />
     <ClInclude Include="include\TsharkDataType.h" />
     <ClInclude Include="include\TsharkError.hpp" />

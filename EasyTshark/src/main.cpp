@@ -12,6 +12,7 @@
 #include "loguru.hpp"
 #include "PacketController.hpp"
 #include "SessionController.hpp"
+#include "StatsController.hpp"
 
 
 int main(int argc, char* argv[])
@@ -101,6 +102,7 @@ void SetUpServer()
     controllerList.push_back(std::make_shared<PacketController>(svr, gPtrTsharkManager));
     controllerList.push_back(std::make_shared<AdaptorController>(svr, gPtrTsharkManager));
     controllerList.push_back(std::make_shared<SessionController>(svr, gPtrTsharkManager));
+    controllerList.push_back(std::make_shared<StatsController>(svr, gPtrTsharkManager));
     for (const auto& controller : controllerList)
     {
         controller->RegisterRoute();

@@ -1,0 +1,193 @@
+﻿#pragma once
+#include <sstream>
+#include <string>
+
+#include "loguru.hpp"
+#include "PageAndOrder.hpp"
+
+class QueryCondition;
+
+namespace StatsSql
+{
+    inline std::string BuildIpStatsQuerySql(const QueryCondition& condition)
+    {
+        std::string        sql;
+        std::ostringstream oss;
+        oss << R"(
+        SELECT
+            ip,
+            location,
+            MIN(start_time) AS earliest_time,
+            MAX(end_time) AS latest_time,
+            GROUP_CONCAT(DISTINCT port) AS ports,
+            GROUP_CONCAT(DISTINCT trans_proto) AS trans_protos,
+            GROUP_CONCAT(DISTINCT app_proto) AS app_protos,
+            SUM(sent_packets) AS total_sent_packets,
+            SUM(sent_bytes) AS total_sent_bytes,
+            SUM(recv_packets) AS total_recv_packets,
+            SUM(recv_bytes) AS total_recv_bytes,
+            SUM(tcp_sessions) AS tcp_session_count,
+            SUM(udp_sessions) AS udp_session_count
+        FROM (
+            SELECT
+                ip1 AS ip,
+                ip1_location AS location,
+                start_time,
+                end_time,
+                ip1_port AS port,
+                trans_proto,
+                app_proto,
+                ip1_send_packets_count AS sent_packets,
+                ip1_send_bytes_count AS sent_bytes,
+                ip2_send_packets_count AS recv_packets,
+                ip2_send_bytes_count AS recv_bytes,
+                CASE WHEN trans_proto LIKE '%TCP%' THEN 1 ELSE 0 END AS tcp_sessions,
+                CASE WHEN trans_proto LIKE '%UDP%' THEN 1 ELSE 0 END AS udp_sessions
+            FROM t_sessions
+            UNION ALL
+            SELECT
+                ip2 AS ip,
+                ip2_location AS location,
+                start_time,
+                end_time,
+                ip2_port AS port,
+                trans_proto,
+                app_proto,
+                ip2_send_packets_count AS sent_packets,
+                ip2_send_bytes_count AS sent_bytes,
+                ip1_send_packets_count AS recv_packets,
+                ip1_send_bytes_count AS recv_bytes,
+                CASE WHEN trans_proto LIKE '%TCP%' THEN 1 ELSE 0 END AS tcp_sessions,
+                CASE WHEN trans_proto LIKE '%UDP%' THEN 1 ELSE 0 END AS udp_sessions
+            FROM t_sessions
+        ) t
+        GROUP BY ip)";
+        oss << PageHelper::GetPageSql();
+        sql = oss.str();
+        LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
+        return sql;
+    }
+
+    inline std::string BuildIpStatsQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildIpStatsQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
+
+    inline std::string BuildProtocolStatsQuerySql(const QueryCondition& condition)
+    {
+        std::string        sql;
+        std::ostringstream oss;
+        oss << R"(
+        SELECT
+            protocol,
+            SUM(packet_count) AS total_packets,
+            SUM(total_bytes) AS total_bytes,
+            COUNT(DISTINCT session_id) AS session_count
+        FROM (
+            SELECT session_id, trans_proto AS protocol, packet_count, total_bytes
+            FROM t_sessions
+            WHERE trans_proto IS NOT NULL AND trans_proto != ''
+            UNION ALL
+            SELECT session_id, app_proto AS protocol, packet_count, total_bytes
+            FROM t_sessions
+            WHERE app_proto IS NOT NULL AND app_proto != ''
+        ) AS combined
+        GROUP BY protocol
+        )";
+        oss << PageHelper::GetPageSql();
+        sql = oss.str();
+        LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
+        return sql;
+    }
+
+    inline std::string BuildProtocolStatsQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildProtocolStatsQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
+
+    inline std::string BuildRegionStatsQuerySql(const QueryCondition& condition)
+    {
+        std::string        sql;
+        std::ostringstream oss;
+        oss << R"(
+        SELECT
+            processed_location AS region,
+            COUNT(DISTINCT ip_addr) AS ip_count,
+            SUM(packet_count) AS total_packets,
+            SUM(total_bytes) AS total_bytes,
+            COUNT(DISTINCT session_id) AS session_count
+        FROM (
+            SELECT
+                session_id,
+                ip1 AS ip_addr,
+                packet_count,
+                total_bytes,
+                CASE
+                    WHEN ip1_location LIKE '%-%'
+                        THEN SUBSTR(ip1_location, 1, INSTR(ip1_location, '-') - 1)
+                    ELSE ip1_location
+                END AS processed_location
+            FROM
+                t_sessions
+            WHERE
+                ip1_location IS NOT NULL
+                AND ip1_location <> ''
+        
+            UNION ALL
+        
+            SELECT
+                session_id,
+                ip2 AS ip_addr,
+                packet_count,
+                total_bytes,
+                CASE
+                    WHEN ip2_location LIKE '%-%'
+                        THEN SUBSTR(ip2_location, 1, INSTR(ip2_location, '-') - 1)
+                    ELSE ip2_location
+                END AS processed_location
+            FROM
+                t_sessions
+            WHERE
+                ip2_location IS NOT NULL
+                AND ip2_location <> ''
+        ) combined
+        WHERE
+            processed_location <> ''
+        GROUP BY
+            processed_location
+        )";
+        oss << PageHelper::GetPageSql();
+        sql = oss.str();
+        LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
+        return sql;
+    }
+
+    inline std::string BuildRegionStatsQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildRegionStatsQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
+}
