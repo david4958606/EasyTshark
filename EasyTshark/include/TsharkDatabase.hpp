@@ -404,6 +404,49 @@ public:
         return true;
     }
 
+    bool QueryRegionStats(const QueryCondition&                          condition,
+                          std::vector<std::shared_ptr<RegionStatsInfo>>& regionStatsList,
+                          int&                                           total) const
+    {
+        sqlite3_stmt* stmt      = nullptr;
+        sqlite3_stmt* countStmt = nullptr;
+        std::string   sql       = StatsSql::BuildRegionStatsQuerySql(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare statement: ");
+            return false;
+        }
+        while (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            auto regionStatsInfo          = std::make_shared<RegionStatsInfo>();
+            regionStatsInfo->Region       = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            regionStatsInfo->IpCount      = sqlite3_column_int(stmt, 1);
+            regionStatsInfo->TotalPackets = sqlite3_column_int(stmt, 2);
+            regionStatsInfo->TotalBytes   = sqlite3_column_int(stmt, 3);
+            regionStatsInfo->SessionCount = sqlite3_column_int(stmt, 4);
+            regionStatsList.push_back(regionStatsInfo);
+        }
+        sqlite3_finalize(stmt);
+        sql = StatsSql::BuildRegionStatsQuerySql_Count(condition);
+        if (sqlite3_prepare_v2(Db, sql.c_str(), -1, &countStmt, nullptr) != SQLITE_OK)
+        {
+            LOG_F(ERROR, "Failed to prepare count statement: ");
+            return false;
+        }
+        if (sqlite3_step(countStmt) == SQLITE_ROW)
+        {
+            total = sqlite3_column_int(countStmt, 0);
+        }
+        else
+        {
+            LOG_F(ERROR, "Failed to execute count statement");
+            sqlite3_finalize(countStmt);
+            return false;
+        }
+        sqlite3_finalize(countStmt);
+        return true;
+    }
+
 private:
     sqlite3* Db = nullptr;
 

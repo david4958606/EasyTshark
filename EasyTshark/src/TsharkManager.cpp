@@ -454,9 +454,17 @@ void TsharkManager::QueryIpStats(const QueryCondition&                      cond
 }
 
 void TsharkManager::QueryProtocolStats(const QueryCondition&                         condition,
-                                       std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList, int& total) const
+                                       std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList,
+                                       int&                                          total) const
 {
     Storage->QueryProtocolStats(condition, protoStatsList, total);
+}
+
+void TsharkManager::QueryRegionStats(const QueryCondition&                          condition,
+                                     std::vector<std::shared_ptr<RegionStatsInfo>>& regionStatsList,
+                                     int&                                           total) const
+{
+    Storage->QueryRegionStats(condition, regionStatsList, total);
 }
 
 bool TsharkManager::ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const

@@ -63,6 +63,10 @@ public:
                             std::vector<std::shared_ptr<ProtoStatsInfo>>& protoStatsList,
                             int&                                          total) const;
 
+    void QueryRegionStats(const QueryCondition&                          condition,
+                          std::vector<std::shared_ptr<RegionStatsInfo>>& regionStatsList,
+                          int&                                           total) const;
+
     bool ConvertToPcap(const std::string& inputFile, const std::string& outputFile) const;
 
     WorkStatus GetWorkStatus();

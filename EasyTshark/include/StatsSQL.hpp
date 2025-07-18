@@ -88,9 +88,9 @@ namespace StatsSql
         oss << R"(
         SELECT
             protocol,
-            SUM(packet_count) AS totalPackets,
+            SUM(packet_count) AS total_packets,
             SUM(total_bytes) AS total_bytes,
-            COUNT(DISTINCT session_id) AS sessionCount
+            COUNT(DISTINCT session_id) AS session_count
         FROM (
             SELECT session_id, trans_proto AS protocol, packet_count, total_bytes
             FROM t_sessions
@@ -111,6 +111,76 @@ namespace StatsSql
     inline std::string BuildProtocolStatsQuerySql_Count(const QueryCondition& condition)
     {
         std::string sql = BuildProtocolStatsQuerySql(condition);
+        auto        pos = sql.find("LIMIT");
+        if (pos != std::string::npos)
+        {
+            sql = sql.substr(0, pos);
+        }
+        std::string countSql = "SELECT COUNT(0) FROM (" + sql + ") t_temp;";
+        LOG_F(INFO, "[BUILD SQL]: %s", countSql.c_str());
+        return countSql;
+    }
+
+    inline std::string BuildRegionStatsQuerySql(const QueryCondition& condition)
+    {
+        std::string        sql;
+        std::ostringstream oss;
+        oss << R"(
+        SELECT
+            processed_location AS region,
+            COUNT(DISTINCT ip_addr) AS ip_count,
+            SUM(packet_count) AS total_packets,
+            SUM(total_bytes) AS total_bytes,
+            COUNT(DISTINCT session_id) AS session_count
+        FROM (
+            SELECT
+                session_id,
+                ip1 AS ip_addr,
+                packet_count,
+                total_bytes,
+                CASE
+                    WHEN ip1_location LIKE '%-%'
+                        THEN SUBSTR(ip1_location, 1, INSTR(ip1_location, '-') - 1)
+                    ELSE ip1_location
+                END AS processed_location
+            FROM
+                t_sessions
+            WHERE
+                ip1_location IS NOT NULL
+                AND ip1_location <> ''
+        
+            UNION ALL
+        
+            SELECT
+                session_id,
+                ip2 AS ip_addr,
+                packet_count,
+                total_bytes,
+                CASE
+                    WHEN ip2_location LIKE '%-%'
+                        THEN SUBSTR(ip2_location, 1, INSTR(ip2_location, '-') - 1)
+                    ELSE ip2_location
+                END AS processed_location
+            FROM
+                t_sessions
+            WHERE
+                ip2_location IS NOT NULL
+                AND ip2_location <> ''
+        ) combined
+        WHERE
+            processed_location <> ''
+        GROUP BY
+            processed_location
+        )";
+        oss << PageHelper::GetPageSql();
+        sql = oss.str();
+        LOG_F(INFO, "[BUILD SQL]: %s", sql.c_str());
+        return sql;
+    }
+
+    inline std::string BuildRegionStatsQuerySql_Count(const QueryCondition& condition)
+    {
+        std::string sql = BuildRegionStatsQuerySql(condition);
         auto        pos = sql.find("LIMIT");
         if (pos != std::string::npos)
         {

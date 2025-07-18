@@ -244,7 +244,7 @@ struct IpStatsInfo final : BaseDataObject
     }
 };
 
-struct ProtoStatsInfo : BaseDataObject
+struct ProtoStatsInfo final : BaseDataObject
 {
     virtual     ~ProtoStatsInfo() = default;
     std::string Protocol;
@@ -260,5 +260,24 @@ struct ProtoStatsInfo : BaseDataObject
         obj.AddMember("total_bytes", TotalBytes, allocator);
         obj.AddMember("session_count", SessionCount, allocator);
         obj.AddMember("proto_desc", rapidjson::Value(ProtoDesc.c_str(), allocator), allocator);
+    }
+};
+
+struct RegionStatsInfo final : BaseDataObject
+{
+    virtual     ~RegionStatsInfo() = default;
+    std::string Region;
+    int         IpCount      = 0;
+    int         TotalPackets = 0;
+    int         TotalBytes   = 0;
+    int         SessionCount = 0;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const override
+    {
+        obj.AddMember("region", rapidjson::Value(Region.c_str(), allocator), allocator);
+        obj.AddMember("ip_count", IpCount, allocator);
+        obj.AddMember("total_packets", TotalPackets, allocator);
+        obj.AddMember("total_bytes", TotalBytes, allocator);
+        obj.AddMember("session_count", SessionCount, allocator);
     }
 };
