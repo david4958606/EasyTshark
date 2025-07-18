@@ -432,7 +432,7 @@ bool TsharkManager::GetPackageDetailInfo(uint32_t frameNumber, std::string& resu
 }
 
 void TsharkManager::QueryPackets(
-    QueryCondition&                       queryCondition,
+    const QueryCondition&                 queryCondition,
     std::vector<std::shared_ptr<Packet>>& packets,
     int&                                  total) const
 {
@@ -440,10 +440,14 @@ void TsharkManager::QueryPackets(
 }
 
 void TsharkManager::QuerySessions(
-    QueryCondition&                        condition,
-    std::vector<std::shared_ptr<Session>>& sessionList, int& total) const
+    const QueryCondition&                  condition,
+    std::vector<std::shared_ptr<Session>>& sessionList, int& total)
 {
     Storage->QuerySessions(condition, sessionList, total);
+    for (const auto& session : sessionList)
+    {
+        SessionIdMap.insert(std::make_pair(session->SessionId, session));
+    }
 }
 
 void TsharkManager::QueryIpStats(const QueryCondition&                      condition,
@@ -542,6 +546,95 @@ void TsharkManager::PrintAllSessions() const
         // LOG_F(INFO, "Session JSON: %s", stringBuffer.GetString());
         std::cout << stringBuffer.GetString() << std::endl;
     }
+}
+
+DataStreamCountInfo TsharkManager::GetSessionDataStream(uint32_t                     sessionId,
+                                                        std::vector<DataStreamItem>& dataStreamList)
+{
+    DataStreamCountInfo countInfo;
+    if (!SessionIdMap.contains(sessionId))
+    {
+        LOG_F(ERROR, "session %d not found", sessionId);
+        throw std::runtime_error("Session not found.");
+    }
+    std::shared_ptr<Session> session    = SessionIdMap[sessionId];
+    std::string              transProto = session->TransProtocol;
+
+    std::ranges::transform(transProto, transProto.begin(), ::tolower);
+    std::string fourTuple;
+    if (session->Ip1.find(":") != std::string::npos) // ipv6
+    {
+        fourTuple = "[" + session->Ip1 + "]:" + std::to_string(session->Ip1Port) + ",[" + session->Ip2 + "]:" +
+            std::to_string(session->Ip2Port);
+    }
+    else
+    {
+        fourTuple = session->Ip1 + ":" + std::to_string(session->Ip1Port) + "," + session->Ip2 + ":" +
+            std::to_string(session->Ip2Port);
+    }
+    std::string tsharkCmd = TsharkPath + " -r " + CurrentFilePath + " -q -z follow," + transProto + ",raw," + fourTuple;
+    std::unique_ptr<FILE, decltype(&PCLOSE)> pipe(POPEN(tsharkCmd.c_str(), "r"), PCLOSE);
+    if (!pipe)
+    {
+        throw std::runtime_error("Failed to run tshark command.");
+    }
+    uint32_t          maxItems = 500;
+    std::vector<char> buffer(65535); // Jumbo Frame
+    bool              dataStart = false;
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        std::string    line(buffer.data());
+        DataStreamItem item;
+        if (!line.empty() && line.back() == '\n')
+        {
+            line.pop_back(); // \n
+        }
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.pop_back(); // \r
+        }
+        if (line.find("Node 0: ") == 0)
+        {
+            countInfo.Node0 = line.substr(strlen("Node 0: ")); // "Node 0: "
+            continue;
+        }
+        if (line.find("Node 1: ") == 0)
+        {
+            countInfo.Node1 = line.substr(strlen("Node 1: ")); // "Node 1: "
+            dataStart       = true;
+            continue;
+        }
+        if (!dataStart || line.find("=====") != std::string::npos)
+        {
+            continue;
+        }
+        if (line[0] == '\t')
+        {
+            item.HexData = line.substr(1); // 去掉前面的制表符
+            item.SrcNode = countInfo.Node1;
+            item.DstNode = countInfo.Node0;
+            countInfo.Node1PacketCount++;
+            countInfo.Node1BytesCount += item.HexData.size() / 2;
+        }
+        else
+        {
+            item.HexData = line;
+            item.SrcNode = countInfo.Node0;
+            item.DstNode = countInfo.Node1;
+            countInfo.Node0PacketCount++;
+            countInfo.Node0BytesCount += item.HexData.size() / 2;
+        }
+        countInfo.TotalPacketCount++;
+        if (dataStreamList.size() < maxItems)
+        {
+            dataStreamList.push_back(item);
+        }
+    }
+    if (PCLOSE(pipe.get()) == -1)
+    {
+        LOG_F(ERROR, "Failed to close pipe.");
+    }
+    return countInfo;
 }
 
 bool TsharkManager::ParseLine(std::string line, const std::shared_ptr<Packet>& packet)

@@ -49,12 +49,12 @@ public:
     bool GetPackageDetailInfo(uint32_t frameNumber, std::string& result) const;
 
     // Database
-    void QueryPackets(QueryCondition&                       queryCondition,
+    void QueryPackets(const QueryCondition&                 queryCondition,
                       std::vector<std::shared_ptr<Packet>>& packets,
                       int&                                  total) const;
-    void QuerySessions(QueryCondition&                        condition,
+    void QuerySessions(const QueryCondition&                  condition,
                        std::vector<std::shared_ptr<Session>>& sessionList,
-                       int&                                   total) const;
+                       int&                                   total);
     void QueryIpStats(const QueryCondition&                      condition,
                       std::vector<std::shared_ptr<IpStatsInfo>>& ipStatsList,
                       int&                                       total) const;
@@ -72,7 +72,9 @@ public:
     WorkStatus GetWorkStatus();
     void       Reset();
 
-    void PrintAllSessions() const;
+    void                PrintAllSessions() const;
+    DataStreamCountInfo GetSessionDataStream(uint32_t                     sessionId,
+                                             std::vector<DataStreamItem>& dataStreamList);
 
 private:
     static bool ParseLine(std::string line, const std::shared_ptr<Packet>& packet);
@@ -128,6 +130,8 @@ private:
     };
 
     std::unordered_set<std::shared_ptr<Session>> SessionSetTobeStore;
+
+    std::map<uint32_t, std::shared_ptr<Session>> SessionIdMap;
 };
 
 typedef rapidjson::Document::AllocatorType& AllocatorType;

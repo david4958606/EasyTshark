@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include <iostream>;
-#include <cstdio>;
-#include <cstdlib>;
-#include <cstring>;
-#include <set>;
-#include <vector>;
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <set>
+#include <vector>
 
 #include "MiscUtil.h"
 
@@ -279,5 +279,42 @@ struct RegionStatsInfo final : BaseDataObject
         obj.AddMember("total_packets", TotalPackets, allocator);
         obj.AddMember("total_bytes", TotalBytes, allocator);
         obj.AddMember("session_count", SessionCount, allocator);
+    }
+};
+
+struct DataStreamItem final : BaseDataObject
+{
+    virtual     ~DataStreamItem() = default;
+    std::string HexData;
+    std::string SrcNode;
+    std::string DstNode;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const override
+    {
+        obj.AddMember("hex_data", rapidjson::Value(HexData.c_str(), allocator), allocator);
+        obj.AddMember("src_node", rapidjson::Value(SrcNode.c_str(), allocator), allocator);
+        obj.AddMember("dst_node", rapidjson::Value(DstNode.c_str(), allocator), allocator);
+    }
+};
+
+struct DataStreamCountInfo final : BaseDataObject
+{
+    uint32_t    TotalPacketCount = 0;
+    std::string Node0;
+    uint32_t    Node0PacketCount = 0;
+    uint32_t    Node0BytesCount  = 0;
+    std::string Node1;
+    uint32_t    Node1PacketCount = 0;
+    uint32_t    Node1BytesCount  = 0;
+
+    void ToJsonObj(rapidjson::Value& obj, rapidjson::Document::AllocatorType& allocator) const override
+    {
+        obj.AddMember("total_packet_count", TotalPacketCount, allocator);
+        obj.AddMember("node0", rapidjson::Value(Node0.c_str(), allocator), allocator);
+        obj.AddMember("node0_packet_count", Node0PacketCount, allocator);
+        obj.AddMember("node0_bytes_count", Node0BytesCount, allocator);
+        obj.AddMember("node1", rapidjson::Value(Node1.c_str(), allocator), allocator);
+        obj.AddMember("node1_packet_count", Node1PacketCount, allocator);
+        obj.AddMember("node1_bytes_count", Node1BytesCount, allocator);
     }
 };
